@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- スケーリングを有効化 -->
+    <title>潜在学習課題</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>潜在学習課題</h1>
+
+        <!-- 説明文とテスト開始ボタンを表示するエリア -->
+        <div id="instructionContainer">
+            <p>画面上に表示された複数の「L」字の中から、左か右に90度回転した「T」字を見つけ出し、その向きをできるだけ早くかつ正確に報告して下さい。</p>
+            <button id="startTestButton">テスト開始</button>
+        </div>
+
+        <!-- テスト用のエリア -->
+        <div id="letterContainer" class="letter-container" style="display:none;">
+            <!-- クロスヘアとプラスマークをここに含める -->
+            <div class="crosshair">
+                <div class="dividing-vertical"></div>
+                <div class="dividing-horizontal"></div>
+                <div class="plus-mark"></div>
+            </div>
+            <!-- ランダムに配置される文字がここに表示される -->
+        </div>
+
+        <div id="buttonsContainer" class="buttons-container" style="display:none;">
+            <!-- 左右のボタンがここに表示される -->
+            <button id="leftButton" aria-label="左に回転">左</button>
+            <button id="rightButton" aria-label="右に回転">右</button>
+        </div>
+
+        <p id="trialCounter" style="display:none;"></p> <!-- テスト進行状況を表示する場所 -->
+
+        <!-- テスト後に表示される名前と起床状況のフォーム -->
+        <form id="userForm" style="display:none;">
+            <label for="username">(半角英字で入力して下さい。 例：TesutoHanako)</label>
+            <br>
+            <label for="username">名前:</label>
+            <input type="text" id="username" name="username" required pattern="[A-Za-z]+" title="半角英字で入力して下さい。">
+            <br><br>
+            <label>起床状況:</label>
+            <div>
+                <input type="radio" id="justAwake" name="wakeStatus" value="起床直後" required>
+                <label for="justAwake">起床直後</label>
+            </div>
+            <div>
+                <input type="radio" id="afterSomeTime" name="wakeStatus" value="起床後数時間後" required>
+                <label for="afterSomeTime">起床後数時間後</label>
+            </div>
+            <br>
+            <button type="button" id="submitButton">テストを終了する</button>
+        </form>
+
+        <!-- フィードバックフォームの追加 -->
+        <form id="feedbackForm" style="display:none;">
+            <label for="feedback">フィードバック:</label>
+            <textarea id="feedback" name="feedback" rows="4" cols="50" placeholder="ご意見やご感想をお聞かせください。"></textarea>
+            <br>
+            <button type="button" id="feedbackSubmitButton">フィードバックを送信する</button>
+        </form>
+
+        <!-- ローディングインジケーターの追加 -->
+        <div id="loadingIndicator" class="loading-indicator" style="display:none;">
+            <div class="spinner"></div>
+            <p>結果を送信中...</p>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
