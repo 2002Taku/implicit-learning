@@ -8,12 +8,20 @@
 </head>
 <body>
     <div class="container">
-        <h1>潜在学習課題</h1>
+       <!-- <h1>潜在学習課題</h1> -->
 
-        <!-- 説明文とテスト開始ボタンを表示するエリア -->
-        <div id="instructionContainer">
-            <p>画面上に表示された複数の「L」字の中から、左か右に90度回転した「T」字を見つけ出し、その向きをできるだけ早くかつ正確に報告して下さい。</p>
-            <button id="startTestButton">テスト開始</button>
+        <!-- 練習セクション -->
+        <div id="practiceContainer" class="container">
+            <h2>⚠︎これは練習です⚠︎</h2>
+            <p>画面上に表示された複数の「L」字の中から、左か右に90度回転した「T」字を見つけ出し、右向きであれば→キーを、左向きであれば←キーをできるだけ早くかつ正確に報告して下さい。正解の時には何も起きず、不正解の時には画面が赤く点滅し音が鳴ります。準備が出来次第スペースキーを押して開始して下さい。</p>
+            <!-- 開始ボタンは削除 -->
+        </div>
+
+        <!-- 本番セクション -->
+        <div id="mainExperimentContainer" class="container" style="display: none;">
+            <h2>⚠︎これは本番です⚠︎</h2>
+            <p>間を開けずスペースキーを押して開始して下さい。</p>
+            <!-- 開始ボタンは削除 -->
         </div>
 
         <!-- テスト用のエリア -->
@@ -25,12 +33,6 @@
                 <div class="plus-mark"></div>
             </div>
             <!-- ランダムに配置される文字がここに表示される -->
-        </div>
-
-        <div id="buttonsContainer" class="buttons-container" style="display:none;">
-            <!-- 左右のボタンがここに表示される -->
-            <button id="leftButton" aria-label="左に回転">左</button>
-            <button id="rightButton" aria-label="右に回転">右</button>
         </div>
 
         <p id="trialCounter" style="display:none;"></p> <!-- テスト進行状況を表示する場所 -->

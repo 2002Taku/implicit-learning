@@ -2,11 +2,15 @@ from flask import Flask, request, jsonify, render_template
 import csv
 import os
 import datetime
+from whitenoise import WhiteNoise
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static', static_folder='static')
+
+# WhiteNoiseを使用して静的ファイルを提供
+app.wsgi_app = WhiteNoise(app.wsgi_app, root='static/', prefix='static/')
 
 # 保存先のファイル名を設定
-CSV_FILENAME = "potential_test_results.csv"
+CSV_FILENAME = "Implic_Learning_results.csv"
 
 @app.route('/')
 def index():
@@ -48,5 +52,9 @@ def append_to_csv(results, participant, condition, test_type):
 
     return CSV_FILENAME
 
-if __name__ == '__main__':
-    app.run(port=3000, debug=True)
+# プロダクション環境ではGunicornがサーバーを管理するため、app.run()は不要です
+# もしローカルでのテストが必要な場合は、以下のコードを使用してください
+
+ # if __name__ == '__main__':
+ #     port = int(os.environ.get("PORT", 5000))
+ #     app.run(host='0.0.0.0', port=port, debug=True)

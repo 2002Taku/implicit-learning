@@ -8,7 +8,7 @@ import numpy as np
 import os
 
 # CSVファイルのパスを指定
-CSV_FILE = 'potential_test_results.csv'  # サーバー上のCSVファイルへのパスを指定
+CSV_FILE = 'Implic_Learning_results.csv'  # サーバー上のCSVファイルへのパスを指定
 
 # CSVファイルの存在確認
 if not os.path.exists(CSV_FILE):
@@ -56,23 +56,28 @@ def remove_outliers(df, column):
     return df_filtered
 
 # 各テーブルごとにグループ化し外れ値を除外
+data_correct['Table'] = data_correct['Table'].astype('category')  # グループ化のためにカテゴリ型に変換
 data_no_outliers = data_correct.groupby('Table').apply(lambda x: remove_outliers(x, 'ResponseTime(ms)'))
 data_no_outliers = data_no_outliers.reset_index(drop=True)
 print(f"\nデータ数（外れ値除外後）: {len(data_no_outliers)}")
 
-# --- 4. データの整形 ---
+# --- 4. データの平均化 ---
+# 参加者ごと、LayoutTypeごと、TableごとにResponseTime_msの平均を計算
+mean_data = data_no_outliers.groupby(['participant', 'LayoutType', 'Table']).agg({'ResponseTime(ms)': 'mean'}).reset_index()
+mean_data.rename(columns={'ResponseTime(ms)': 'MeanResponseTime_ms'}, inplace=True)
+
+print("\n平均化されたデータの最初の5行:")
+print(mean_data.head())
+
+# --- 5. データの整形 ---
 # ANOVAのために必要なカテゴリ型に変換
-anova_data = data_no_outliers.copy()
+anova_data = mean_data.copy()
 anova_data['Table'] = anova_data['Table'].astype('category')
 anova_data['LayoutType'] = anova_data['LayoutType'].astype('category')
 
-# --- 5. カラム名の変更 ---
-# ResponseTime(ms) の列名を ResponseTime_ms に変更
-anova_data.rename(columns={'ResponseTime(ms)': 'ResponseTime_ms'}, inplace=True)
-
 # --- 6. 2要因分散分析（ANOVA）の実施 ---
 # ANOVAモデルの定義
-model = ols('ResponseTime_ms ~ C(LayoutType) * C(Table)', data=anova_data).fit()
+model = ols('MeanResponseTime_ms ~ C(LayoutType) * C(Table)', data=anova_data).fit()
 anova_table = anova_lm(model, typ=2)
 print("\n2要因分散分析（ANOVA）の結果:")
 print(anova_table)
@@ -83,44 +88,42 @@ sns.set(style="whitegrid")
 
 # a. 反応時間のボックスプロット（LayoutType別）
 plt.figure(figsize=(10, 6))
-sns.boxplot(x='LayoutType', y='ResponseTime_ms', data=anova_data, palette='Set2')
-plt.title('Reaction Time Distribution by Layout Type')
+sns.boxplot(x='LayoutType', y='MeanResponseTime_ms', data=anova_data, palette='Set2')
+plt.title('Average Reaction Time by Layout Type')
 plt.xlabel('Layout Type')
-plt.ylabel('Reaction Time (ms)')
-plt.savefig('reaction_time_boxplot_layout.png')
+plt.ylabel('Average Reaction Time (ms)')
+plt.savefig('average_reaction_time_boxplot_layout.png')
 plt.show()
 
 # b. 反応時間の平均と標準誤差のバーグラフ
 plt.figure(figsize=(10, 6))
-# Seabornの最新バージョンでは、ciパラメータは非推奨であり、errorbarを使用します。
-# ただし、'se'の指定は適切ではないため、代わりに 'ci=95' を使用します。
-# エラーバーとして標準誤差を表示したい場合は、以下のようにカスタムエラーバーを計算します。
-mean_rt = anova_data.groupby('LayoutType')['ResponseTime_ms'].mean().reset_index()
-se_rt = anova_data.groupby('LayoutType')['ResponseTime_ms'].sem().reset_index()
+# 平均と標準誤差の計算
+mean_rt = anova_data.groupby('LayoutType')['MeanResponseTime_ms'].mean().reset_index()
+se_rt = anova_data.groupby('LayoutType')['MeanResponseTime_ms'].sem().reset_index()
 
 # バーグラフの作成
-sns.barplot(x='LayoutType', y='ResponseTime_ms', data=anova_data, palette='Set2', ci=None)
+sns.barplot(x='LayoutType', y='MeanResponseTime_ms', data=anova_data, palette='Set2', ci=None)
 # エラーバーの追加
-plt.errorbar(x=range(len(mean_rt)), y=mean_rt['ResponseTime_ms'], yerr=se_rt['ResponseTime_ms'],
+plt.errorbar(x=range(len(mean_rt)), y=mean_rt['MeanResponseTime_ms'], yerr=se_rt['MeanResponseTime_ms'],
              fmt='none', c='black', capsize=5)
 
 plt.title('Mean Reaction Time by Layout Type')
 plt.xlabel('Layout Type')
 plt.ylabel('Mean Reaction Time (ms)')
-plt.savefig('reaction_time_mean_se.png')
+plt.savefig('average_reaction_time_mean_se.png')
 plt.show()
 
 # c. 反応時間の2要因分散分析の結果を示すグラフ
 # LayoutTypeごとのTableごとの平均反応時間をプロット
-mean_rt_table = anova_data.groupby(['LayoutType', 'Table'])['ResponseTime_ms'].mean().reset_index()
+mean_rt_table = anova_data.groupby(['LayoutType', 'Table'])['MeanResponseTime_ms'].mean().reset_index()
 
 plt.figure(figsize=(12, 8))
-sns.pointplot(x='Table', y='ResponseTime_ms', hue='LayoutType', data=mean_rt_table, dodge=True, markers=['o', 's'], capsize=.1, errwidth=1, palette='Set2')
+sns.pointplot(x='Table', y='MeanResponseTime_ms', hue='LayoutType', data=mean_rt_table, dodge=True, markers=['o', 's'], capsize=.1, errwidth=1, palette='Set2')
 plt.title('Mean Reaction Time by Layout Type and Table')
 plt.xlabel('Table')
 plt.ylabel('Mean Reaction Time (ms)')
 plt.legend(title='Layout Type')
-plt.savefig('reaction_time_pointplot.png')
+plt.savefig('average_reaction_time_pointplot.png')
 plt.show()
 
 # --- 8. 追加: データの保存 ---

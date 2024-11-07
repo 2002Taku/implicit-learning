@@ -4,45 +4,49 @@ document.addEventListener("DOMContentLoaded", function() {
     // =============================
     // DOM要素の取得
     // =============================
-    const instructionContainer = document.getElementById('instructionContainer');
-    const startTestButton = document.getElementById('startTestButton');
+    const practiceContainer = document.getElementById('practiceContainer');
+    const mainExperimentContainer = document.getElementById('mainExperimentContainer');
+
     const userForm = document.getElementById('userForm');
     const submitButton = document.getElementById('submitButton');
     const usernameInput = document.getElementById('username');
     const wakeStatusInputs = document.getElementsByName('wakeStatus');
     const letterContainer = document.getElementById('letterContainer');
-    const buttonsContainer = document.getElementById('buttonsContainer');
     const trialCounter = document.getElementById('trialCounter');
     const loadingIndicator = document.getElementById('loadingIndicator');
-    
+
     // デバッグコンテナの要素を取得
     const debugContainer = document.getElementById('debugContainer');
     const layoutsList = document.getElementById('layoutsList');
     const blocksList = document.getElementById('blocksList');
     const exportCSVButton = document.getElementById('exportCSVButton');
-    
+
     // =============================
     // 状態管理変数の初期化
     // =============================
     let username = '';
     let wakeStatus = '';
     let startTime = 0;
-    
+
     let repeatedLayouts = []; // 反復配置の10レイアウト
     let randomLayouts = [];   // ランダム配置の10レイアウト
     let allLayouts = [];      // 全ブロックで使用されるシャッフルされたレイアウト（18ブロック × 20レイアウト = 360トライアル）
-    let trialCount = 0;       // 現在のトライアル番号（0〜359）
+    let trialCount = 0;       // 本番セクションの現在のトライアル番号（0〜359）
     let results = [];         // ユーザーの応答結果を格納
-    
+
     let isExperimentStarted = false; // 実験が開始されたかどうかのフラグ
     let isExperimentEnded = false;   // 実験が終了したかどうかのフラグ
-    
+
+    let isPractice = false;          // 練習中かどうかのフラグ
+    let practiceTrials = 10;         // 練習問題の数
+    let practiceTrialCount = 0;      // 現在の練習トライアル番号
+
     // =============================
     // デバッグモードの検出
     // =============================
     const urlParams = new URLSearchParams(window.location.search);
     const isDebugMode = urlParams.get('debug') === 'true';
-    
+
     // =============================
     // レイアウト生成関数
     // =============================
@@ -58,92 +62,58 @@ document.addEventListener("DOMContentLoaded", function() {
         // 反復配置のレイアウト生成
         for (let i = 1; i <= 10; i++) {
             const layoutId = i.toString(); // 1〜10
-            const tPosition = generateFixedTPosition(containerSize);
-            const layoutItems = generateFixedLayout(tPosition, containerSize, 'repeated', layoutId);
-            
+            const layoutItems = generateFixedLayout(containerSize, 'repeated', layoutId);
+
             repeatedLayouts.push({
                 layoutId: layoutId,
                 items: layoutItems
             });
         }
-        
+
         // ランダム配置のレイアウト生成
         for (let i = 0; i < 10; i++) {
             const layoutId = String.fromCharCode(65 + i); // A〜J
-            const tPosition = generateFixedTPosition(containerSize);
-            const tRotation = getRandomRotation(true);
-            
-            // 初期のランダム配置ではL字の位置はブロックごとに生成されるため、itemsは空配列
+            const layoutItems = generateFixedLayout(containerSize, 'random', layoutId);
+
             randomLayouts.push({
                 layoutId: layoutId,
-                tPosition: tPosition,
-                tRotation: tRotation,
-                items: [] // 初期は空
+                items: layoutItems
             });
         }
     }
 
     /**
-     * 固定されたTの位置を生成する関数
-     * 各レイアウトでTの位置が固定される
-     * @param {number} containerSize - レイアウトを配置するコンテナのサイズ
-     * @returns {Object} Tの位置 { top: number, left: number }
-     */
-    function generateFixedTPosition(containerSize) {
-        let position;
-        let attempts = 0;
-        const maxAttempts = 100;
-        const minDistanceFromCenterLines = 15; // 50%からの最小距離（パーセンテージ）を15%に設定
-
-        do {
-            position = {
-                top: getRandomPosition(10, 90),
-                left: getRandomPosition(10, 90)
-            };
-            attempts++;
-        } while (
-            attempts < maxAttempts && (
-                // 中央の十字マークおよび中央の縦横線から一定の距離を保つ
-                (Math.abs(position.top - 50) < minDistanceFromCenterLines) ||
-                (Math.abs(position.left - 50) < minDistanceFromCenterLines)
-            )
-        );
-
-        if (attempts >= maxAttempts) {
-            // 有効な位置が見つからない場合はデフォルト位置を設定
-            position = { top: 10, left: 10 };
-        }
-
-        return position;
-    }
-
-    /**
      * 固定レイアウトのT字とL字を生成する関数
-     * @param {Object} tPosition - Tの位置 { top: number, left: number }
      * @param {number} containerSize - コンテナのサイズ
-     * @param {string} layoutType - 'repeated' または 'random'
+     * @param {string} layoutType - 'repeated' または 'random' または 'practice'
      * @param {string} layoutId - レイアウトの識別子
      * @returns {Array} レイアウト内の文字情報の配列
      */
-    function generateFixedLayout(tPosition, containerSize, layoutType, layoutId) {
+    function generateFixedLayout(containerSize, layoutType, layoutId) {
         let layout = [];
-        
+
+        // クアドラントをランダムに選択
+        const tQuadrant = getRandomQuadrant();
+        const tPosition = getRandomPositionWithinQuadrant(tQuadrant);
+        const tRotation = getRandomRotation(true);
+
         // T字を配置（回転角度は90度または270度のみ）
         layout.push({
             letter: 'T',
-            rotation: getRandomRotation(true), // 90度または270度
+            rotation: tRotation, // 90度または270度
             top: tPosition.top, // パーセンテージ
             left: tPosition.left, // パーセンテージ
             layoutType: layoutType, // レイアウトタイプ
             layoutId: layoutId // レイアウトID
         });
-        
+
         // L字を配置
-        const numLLetters = 11; // 各レイアウトに配置するL字の数
+        const numLLetters = 11; // 練習でも本番と同じ数を生成
         for (let i = 0; i < numLLetters; i++) {
-            let lPosition = generateLPosition(tPosition, containerSize, layoutType, layout);
+            let lQuadrant = getRandomQuadrant();
+            let lPosition = getRandomPositionWithinQuadrant(lQuadrant, layout);
             let rotation = getRandomRotation();
-            
+
             layout.push({
                 letter: 'L',
                 rotation: rotation,
@@ -153,65 +123,73 @@ document.addEventListener("DOMContentLoaded", function() {
                 layoutId: layoutId
             });
         }
-        
+
         return layout;
     }
 
     /**
-     * L字の位置を生成する関数
-     * 各レイアウト内でL字がクロスヘアや他のL字と重複しないように配置
-     * @param {Object} tPosition - Tの位置 { top: number, left: number }
-     * @param {number} containerSize - レイアウトを配置するコンテナのサイズ
-     * @param {string} layoutType - 'repeated' または 'random'
-     * @param {Array} currentLayout - 現在のレイアウト配列
-     * @returns {Object} Lの位置 { top: number, left: number }
+     * ランダムにクアドラントを選択する関数
+     * @returns {Object} 選択されたクアドラントのオブジェクト
      */
-    function generateLPosition(tPosition, containerSize, layoutType, currentLayout) {
+    function getRandomQuadrant() {
+        const quadrants = [
+            { name: 'Top-Left', topMin: 0, topMax: 50, leftMin: 0, leftMax: 50 },
+            { name: 'Top-Right', topMin: 0, topMax: 50, leftMin: 50, leftMax: 100 },
+            { name: 'Bottom-Left', topMin: 50, topMax: 100, leftMin: 0, leftMax: 50 },
+            { name: 'Bottom-Right', topMin: 50, topMax: 100, leftMin: 50, leftMax: 100 }
+        ];
+        const index = Math.floor(Math.random() * quadrants.length);
+        return quadrants[index];
+    }
+
+    /**
+     * 指定されたクアドラント内でランダムな位置を取得する関数
+     * @param {Object} quadrant - クアドラントのオブジェクト
+     * @param {Array} currentLayout - 現在のレイアウト配列（重複回避用）
+     * @returns {Object} 位置 { top: number, left: number }
+     */
+    function getRandomPositionWithinQuadrant(quadrant, currentLayout = []) {
         let position;
         let attempts = 0;
         let isValid = false;
-        const maxAttempts = 100;
-        const minDistanceFromCenterLines = 10; // 50%からの最小距離（パーセンテージ）を15%に設定
 
-        while (!isValid && attempts < maxAttempts) {
+        // バッファを設定（文字のサイズと回転を考慮）
+        const buffer = 6.25; // 12.5%（文字サイズ）の半分
+
+        // クアドラント内の有効範囲を計算
+        const effectiveTopMin = quadrant.topMin + buffer;
+        const effectiveTopMax = quadrant.topMax - buffer;
+        const effectiveLeftMin = quadrant.leftMin + buffer;
+        const effectiveLeftMax = quadrant.leftMax - buffer;
+
+        while (!isValid && attempts < 100) {
             position = {
-                top: getRandomPosition(10, 90), // 10%〜90%の範囲内
-                left: getRandomPosition(10, 90) // 10%〜90%の範囲内
+                top: getRandomPosition(effectiveTopMin, effectiveTopMax),
+                left: getRandomPosition(effectiveLeftMin, effectiveLeftMax)
             };
 
-            // 中央の十字マークおよび中央の縦横線から一定の距離を保つ
-            if (Math.abs(position.top - 50) < minDistanceFromCenterLines || Math.abs(position.left - 50) < minDistanceFromCenterLines) {
-                attempts++;
-                continue;
-            }
-
-            // T字との重複を避ける
-            if (Math.abs(position.top - tPosition.top) < 10 && Math.abs(position.left - tPosition.left) < 10) {
-                attempts++;
-                continue;
-            }
-
-            // 既存のL字との重複を避ける
+            // 既存の文字との重複を避ける
             const overlapping = currentLayout.some(item => {
-                if (item.letter !== 'L') return false;
                 const distanceTop = Math.abs(item.top - position.top);
                 const distanceLeft = Math.abs(item.left - position.left);
-                return (distanceTop < 10) && (distanceLeft < 10); // 10%以内の距離であれば重複とみなす
+                return (distanceTop < buffer) && (distanceLeft < buffer); // バッファ以内の距離であれば重複とみなす
             });
 
-            if (overlapping) {
-                attempts++;
-                continue;
+            if (!overlapping) {
+                isValid = true;
             }
 
-            isValid = true;
+            attempts++;
         }
 
         if (isValid) {
             return position;
         } else {
-            // 有効な位置が見つからない場合はデフォルト位置を設定
-            return { top: 10, left: 10 };
+            // デフォルト位置（クアドラントの中央）
+            return {
+                top: (quadrant.topMin + quadrant.topMax) / 2,
+                left: (quadrant.leftMin + quadrant.leftMax) / 2
+            };
         }
     }
 
@@ -231,7 +209,7 @@ document.addEventListener("DOMContentLoaded", function() {
             return rotations[index];
         }
     }
-    
+
     /**
      * ランダムな位置を取得する関数
      * @param {number} min - 最小値（パーセンテージ）
@@ -241,7 +219,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function getRandomPosition(min, max) {
         return Math.random() * (max - min) + min;
     }
-    
+
     /**
      * レイアウト配列をシャッフルする関数
      * @param {Array} array - シャッフル対象の配列
@@ -254,11 +232,11 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         return array;
     }
-    
+
     // =============================
     // レイアウト初期化関数
     // =============================
-    
+
     /**
      * 全ブロックに対してシャッフルされたレイアウトを初期化する関数
      * 反復配置は固定、ランダム配置はブロックごとにL字位置をランダムに生成
@@ -266,55 +244,70 @@ document.addEventListener("DOMContentLoaded", function() {
     function initializeAllLayouts() {
         const containerSize = Math.min(letterContainer.clientWidth, letterContainer.clientHeight);
         generateLayouts(containerSize); // 反復配置10種類とランダム配置10種類のレイアウトを生成
-        
+
         const numberOfBlocks = 18;
         const layoutsPerBlock = 20;
-        
+
         for (let block = 0; block < numberOfBlocks; block++) {
             let blockLayouts = [];
-            
-            // ランダム配置のレイアウトのL字位置をブロックごとに生成
+
+            // ランダム配置のレイアウトを追加
             randomLayouts.forEach(randomLayout => {
-                const layoutId = randomLayout.layoutId;
-                const tPosition = randomLayout.tPosition;
-                const tRotation = randomLayout.tRotation;
-                
-                // 新しいL字位置を生成
-                let layoutItems = generateFixedLayout(tPosition, containerSize, 'random', layoutId);
-                
-                blockLayouts.push({
-                    layoutId: layoutId,
-                    items: layoutItems
-                });
+                blockLayouts.push(randomLayout);
             });
-            
+
             // 反復配置のレイアウトを追加（固定）
             repeatedLayouts.forEach(repeatedLayout => {
                 blockLayouts.push(repeatedLayout);
             });
-            
+
             // レイアウトをシャッフル
             let shuffledBlockLayouts = shuffleArray([...blockLayouts]);
             allLayouts.push(...shuffledBlockLayouts); // allLayoutsに追加
-            
+
             // デバッグモード時に各ブロックのシャッフル結果を表示
             if (isDebugMode) {
                 console.log(`Block ${block + 1} Layouts:`, shuffledBlockLayouts);
                 displayBlockLayouts(block + 1, shuffledBlockLayouts);
             }
         }
-        
+
         // デバッグモード時にPredefined Layoutsを表示
         if (isDebugMode) {
             displayPredefinedLayouts();
             console.log('All Layouts:', allLayouts);
         }
     }
-    
+
+    // =============================
+    // 練習レイアウト初期化関数
+    // =============================
+
+    /**
+     * 練習用レイアウトを生成する関数
+     */
+    function generatePracticeLayouts() {
+        let practiceLayouts = [];
+
+        for (let i = 0; i < practiceTrials; i++) {
+            const layoutType = 'practice';
+            const layoutId = `Practice-${i + 1}`;
+            const layoutItems = generateFixedLayout(Math.min(letterContainer.clientWidth, letterContainer.clientHeight), layoutType, layoutId);
+
+            practiceLayouts.push({
+                layoutId: layoutId,
+                items: layoutItems
+            });
+        }
+
+        // 練習レイアウトをシャッフルして順番をランダム化
+        allLayouts = shuffleArray([...practiceLayouts, ...allLayouts]); // 練習レイアウトを先頭に配置
+    }
+
     // =============================
     // レイアウト表示関数
     // =============================
-    
+
     /**
      * 現在のレイアウトを表示する関数
      * @param {Object} layout - 現在のレイアウトオブジェクト { layoutId: string, items: Array }
@@ -323,167 +316,201 @@ document.addEventListener("DOMContentLoaded", function() {
         // 既存の文字アイテムを削除
         const existingLetters = letterContainer.querySelectorAll('.letter-item');
         existingLetters.forEach(item => item.remove());
-        
+
         // 新たに文字アイテムを作成
         layout.items.forEach(item => {
             if (item.letter === '') return; // 空文字の場合はスキップ
-            
+
             const letterDiv = document.createElement('div');
             letterDiv.classList.add('letter-item');
             letterDiv.textContent = item.letter;
             letterDiv.style.top = `${item.top}%`;
             letterDiv.style.left = `${item.left}%`;
-            letterDiv.style.transform = `rotate(${item.rotation}deg)`;
+            letterDiv.style.transform = `translate(-50%, -50%) rotate(${item.rotation}deg)`;
             if (item.letter === 'T') {
                 letterDiv.style.color = 'black';
             }
             letterContainer.appendChild(letterDiv);
         });
     }
-    
+
     // =============================
     // 実験開始関数
     // =============================
-    
+
     /**
      * 実験を開始する関数
      */
     function startExperiment() {
         isExperimentStarted = true;
         isExperimentEnded = false;
-        trialCount = 0;
         results = [];
         startTime = Date.now(); // 実験開始時刻を記録
-        nextTrial();
+
+        if (isPractice) {
+            displayPracticeTrial(); // 練習トライアルを開始
+        } else {
+            trialCount = 0;
+            nextTrial(); // 本番トライアルを開始
+        }
     }
-    
+
     /**
      * 次のトライアルを実行する関数
      */
     function nextTrial() {
-        if (trialCount < allLayouts.length) {
+        if (trialCount < allLayouts.length - practiceTrials) { // 本番セクションのトライアル数を確認
             const currentBlock = Math.floor(trialCount / 20) + 1;
-            const currentLayoutNumber = (trialCount % 20) + 1;
-            trialCounter.textContent = `ブロック: ${currentBlock} / 18 | レイアウト: ${currentLayoutNumber} / 20`;
-            
-            const currentLayout = allLayouts[trialCount];
+            trialCounter.textContent = `ブロック: ${currentBlock} / 18`;
+
+            const currentLayout = allLayouts[practiceTrials + trialCount];
             displayLetters(currentLayout);
             letterContainer.style.visibility = 'visible';
-            buttonsContainer.style.display = 'flex';
-            
+
             trialStartTime = Date.now(); // トライアル開始時刻を記録
             trialCount++;
         } else {
             endExperiment(); // 実験終了
         }
     }
-    
+
+    // =============================
+    // 練習トライアル管理
+    // =============================
+
+    /**
+     * 練習トライアルを表示する関数
+     */
+    function displayPracticeTrial() {
+        if (practiceTrialCount < practiceTrials) {
+            const currentLayout = allLayouts[practiceTrialCount];
+            displayLetters(currentLayout);
+            letterContainer.style.visibility = 'visible';
+            trialCounter.style.display = 'block';
+            trialCounter.textContent = `練習: ${practiceTrialCount + 1} / ${practiceTrials}`;
+
+            trialStartTime = Date.now(); // トライアル開始時刻を記録
+            practiceTrialCount++;
+        } else {
+            // 練習終了後、本番セクションを表示
+            letterContainer.style.display = 'none';
+            trialCounter.style.display = 'none';
+            practiceContainer.style.display = 'none';
+            mainExperimentContainer.style.display = 'flex'; // 本番セクションを表示（'flex'に変更）
+            isPractice = false; // 練習終了時にフラグをリセット
+            isExperimentStarted = false; // 実験開始フラグをリセット（修正点）
+            console.log('Practice trials ended. Ready to start main experiment.');
+        }
+    }
+
     // =============================
     // ユーザー応答処理関数
     // =============================
-    
+
     /**
      * ユーザーの応答をチェックし、結果を記録する関数
      * @param {string} response - ユーザーの応答 ('left' または 'right')
      */
     function checkResponse(response) {
         if (!isExperimentStarted || isExperimentEnded) return;
-        
+
         const endTime = Date.now();
         const reactionTime = endTime - trialStartTime; // 反応時間を計算
-        
-        // 現在のレイアウトからTの回転角度を取得
-        const currentLayout = allLayouts[trialCount - 1];
+
+        let currentLayout;
+        if (isPractice) {
+            currentLayout = allLayouts[practiceTrialCount - 1]; // 練習セクションのレイアウトを取得
+        } else {
+            currentLayout = allLayouts[practiceTrials + trialCount - 1]; // 本番セクションのレイアウトを取得
+        }
+
         const targetItem = currentLayout.items.find(item => item.letter === 'T');
         const targetRotation = targetItem ? targetItem.rotation : 0;
         const layoutType = targetItem ? targetItem.layoutType : 'unknown';
         const layoutId = targetItem ? targetItem.layoutId : 'unknown';
-        
+
         // 正誤判定
         const isCorrect = (response === 'left' && targetRotation === 270) || (response === 'right' && targetRotation === 90);
-        
+
+        if (!isCorrect) {
+            triggerIncorrectFeedback();
+        }
+
         // 結果を記録
-        results.push({
-            participant: username,
-            condition: wakeStatus,
-            testType: 'Implicit Learning',
-            trialNumber: `${trialCount}`,
-            layoutId: layoutId, // layoutIdを記録
-            layoutType: layoutType,
-            result: isCorrect ? 'Correct' : 'Incorrect',
-            responseTime: `${reactionTime}`
-        });
-        
-        // フィードバックの表示
-        displayFeedback(isCorrect);
-        
+        if (!isPractice) { // 本番実験のみデータを保存
+            results.push({
+                participant: username,
+                condition: wakeStatus,
+                testType: 'Implicit Learning',
+                trialNumber: isPractice ? `Practice-${practiceTrialCount}` : `${trialCount}`,
+                layoutId: layoutId, // layoutIdを記録
+                layoutType: layoutType,
+                result: isCorrect ? 'Correct' : 'Incorrect',
+                responseTime: `${reactionTime}`
+            });
+        }
+
         // デバッグモード時に結果をコンソールに表示
         if (isDebugMode) {
-            console.log(`Trial ${trialCount}: Response=${response}, Rotation=${targetRotation}, Correct=${isCorrect}`);
+            console.log(`Trial ${isPractice ? 'Practice-' + practiceTrialCount : trialCount}: Response=${response}, Rotation=${targetRotation}, Correct=${isCorrect}`);
         }
-        
+
         // 次のトライアルへ進む準備
         letterContainer.style.visibility = 'hidden';
-        buttonsContainer.style.display = 'none';
-        setTimeout(nextTrial, 300); // 次のトライアルに進む前に300msの遅延
+
+        if (isPractice) {
+            setTimeout(displayPracticeTrial, 300); // 練習トライアルに進む前に300msの遅延
+        } else {
+            setTimeout(nextTrial, 300); // 本番トライアルに進む前に300msの遅延
+        }
     }
-    
+
     /**
-     * フィードバックを表示する関数
-     * @param {boolean} isCorrect - 正解かどうか
+     * 不正解時のフィードバックをトリガーする関数
+     * 画面を赤く点滅させ、音声を再生します
      */
-    function displayFeedback(isCorrect) {
-        const feedback = document.createElement('div');
-        feedback.classList.add('feedback');
-        feedback.textContent = isCorrect ? '正解！' : '不正解。';
-        feedback.style.position = 'absolute';
-        feedback.style.bottom = '10px';
-        feedback.style.left = '50%';
-        feedback.style.transform = 'translateX(-50%)';
-        feedback.style.padding = '10px 20px';
-        feedback.style.backgroundColor = isCorrect ? 'rgba(40, 167, 69, 0.8)' : 'rgba(220, 53, 69, 0.8)';
-        feedback.style.color = '#fff';
-        feedback.style.borderRadius = '5px';
-        feedback.style.fontSize = '1rem';
-        feedback.style.animation = 'fadeOut 1s forwards';
-        
-        letterContainer.appendChild(feedback);
-        
-        // フィードバックをアニメーションでフェードアウト
+    function triggerIncorrectFeedback() {
+        // 赤色のクラスを一時的に追加
+        document.body.classList.add('incorrect-feedback');
+
+        // 音声を再生
+        const audio = new Audio('/static/incorrect.mp3'); // 音声ファイルのパスを確認してください
+        audio.play();
+
+        // クラスを元に戻す
         setTimeout(() => {
-            feedback.remove();
-        }, 1000); // 1秒後にフィードバックを削除
+            document.body.classList.remove('incorrect-feedback');
+        }, 500); // 0.5秒後にクラスを削除
     }
-    
+
     // =============================
     // 実験終了関数
     // =============================
-    
+
     /**
      * 実験を終了する関数
      */
     function endExperiment() {
         isExperimentEnded = true;
         isExperimentStarted = false;
-        
-        // テストエリアおよびボタンエリアを非表示
+
+        // テストエリアを非表示
         letterContainer.style.display = 'none';
-        buttonsContainer.style.display = 'none';
         trialCounter.style.display = 'none';
-        
+
         // ユーザーフォームを表示
         userForm.style.display = 'block';
-        
+
         // デバッグモード時に結果をコンソールに表示
         if (isDebugMode) {
             console.log('Experiment Ended. Results:', results);
         }
     }
-    
+
     // =============================
     // 結果送信関数
     // =============================
-    
+
     /**
      * 結果をサーバーに送信する関数
      */
@@ -494,11 +521,11 @@ document.addEventListener("DOMContentLoaded", function() {
             testType: 'Implicit Learning',
             results: results
         };
-        
+
         // ローディングインジケーターの表示
         loadingIndicator.style.display = 'flex';
-        
-        fetch('http://localhost:3000/proxy', { // サーバーのエンドポイントに合わせてURLを変更
+
+        fetch('/proxy', { // Flaskのルートに合わせてURLを変更
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -524,22 +551,24 @@ document.addEventListener("DOMContentLoaded", function() {
             userForm.style.display = 'block';
         });
     }
-    
+
     /**
      * 結果送信後のメッセージを表示する関数
      */
     function displayThankYouMessage() {
+        const totalCorrect = calculateTotalCorrect();
+        userForm.style.display = 'none'; // フォームを非表示
+
         const resultContainer = document.createElement('div');
         resultContainer.classList.add('result-container');
-        const totalCorrect = calculateTotalCorrect();
         resultContainer.innerHTML = `
             <p>結果は送信されました。回答ありがとうございます。</p>
-            <p>総正解数: ${totalCorrect} / ${allLayouts.length}</p>
+            <p>総正解数: ${totalCorrect} / ${allLayouts.length - practiceTrials}</p>
         `;
         document.body.innerHTML = ''; // 既存の要素をクリア
         document.body.appendChild(resultContainer); // メッセージを表示
     }
-    
+
     /**
      * 正解数を計算する関数
      * @returns {number} 正解の総数
@@ -547,82 +576,92 @@ document.addEventListener("DOMContentLoaded", function() {
     function calculateTotalCorrect() {
         return results.filter(result => result.result === 'Correct').length;
     }
-    
+
     // =============================
     // ユーザー応答イベントリスナーの追加
     // =============================
-    
-    // 左右ボタンのクリックイベント
-    const leftButton = document.getElementById('leftButton');
-    const rightButton = document.getElementById('rightButton');
-    
-    leftButton.addEventListener('click', () => checkResponse('left'));
-    rightButton.addEventListener('click', () => checkResponse('right'));
-    
-    // タッチデバイス対応のため、タッチイベントを追加
-    leftButton.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        checkResponse('left');
-    });
-    
-    rightButton.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        checkResponse('right');
-    });
-    
-    // キーボードの矢印キーによる応答をリスン
-    document.addEventListener('keydown', function(event) {
-        if (isExperimentEnded) return; // 実験終了後は無視
-        
-        if (isExperimentStarted && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
-            const direction = event.key === 'ArrowLeft' ? 'left' : 'right';
-            checkResponse(direction);
-        }
-    });
-    
-    // =============================
-    // ユーザー名入力のリアルタイムバリデーション
-    // =============================
-    
+
     /**
-     * ユーザー名入力時のリアルタイムバリデーション
+     * 矢印キー（←、→）およびスペースキーによる応答を処理するイベントリスナー
      */
-    usernameInput.addEventListener('input', () => {
-        const isValid = /^[A-Za-z]*$/.test(usernameInput.value);
-        if (!isValid) {
-            usernameInput.setCustomValidity("ローマ字（英語のアルファベット）のみを使用してください。");
+    document.addEventListener('keydown', function(event) {
+        console.log(`Key pressed: ${event.key} (${event.code})`); // デバッグ用ログ
+
+        if (isExperimentEnded) return; // 実験終了後は無視
+
+        // 練習セクション開始のスペースキー検出
+        if (window.getComputedStyle(practiceContainer).display !== 'none' && !isExperimentStarted && !isPractice) {
+            if (event.code === 'Space') {
+                event.preventDefault(); // スペースキーのデフォルト動作を防止
+                console.log('Space key pressed to start practice'); // デバッグ用ログ
+                practiceContainer.style.display = 'none'; // 練習セクションを非表示
+                letterContainer.style.display = 'block';  // テストエリアを表示
+                trialCounter.style.display = 'block';     // カウンターを表示
+                isPractice = true;
+                startExperiment();                        // 練習実験を開始
+                return; // 練習開始後は他の条件を評価しない
+            }
+        }
+
+        if (isPractice) {
+            // 練習中の応答処理
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                const direction = event.key === 'ArrowLeft' ? 'left' : 'right';
+                checkResponse(direction);
+            }
+        } else if (window.getComputedStyle(mainExperimentContainer).display !== 'none' && !isExperimentStarted) {
+            // 本番セクション開始前のスペースキー検出
+            console.log('Checking main experiment conditions...');
+            console.log(`mainExperimentContainer display: ${window.getComputedStyle(mainExperimentContainer).display}`);
+            console.log(`isExperimentStarted: ${isExperimentStarted}`);
+
+            if (event.code === 'Space') {
+                event.preventDefault(); // スペースキーのデフォルト動作（ページ下部へのスクロールなど）を防止
+                console.log('Space key pressed to start main experiment'); // デバッグ用ログ
+                mainExperimentContainer.style.display = 'none'; // 本番セクションを非表示
+                letterContainer.style.display = 'block';        // テストエリアを表示
+                trialCounter.style.display = 'block';           // カウンターを表示
+                isPractice = false;                             // 本番開始時にフラグをリセット
+                isExperimentStarted = true;                     // 本番実験を開始
+                startExperiment();                              // 本番実験を開始
+                return; // 本番開始後は他の条件を評価しない
+            }
         } else {
-            usernameInput.setCustomValidity("");
+            // 本番実験中の応答処理
+            if (isExperimentStarted && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+                const direction = event.key === 'ArrowLeft' ? 'left' : 'right';
+                checkResponse(direction);
+            }
         }
     });
-    
+
     // =============================
-    // 結果送信ボタンのイベントリスナー
+    // フォーム送信イベントリスナーの追加
     // =============================
-    
+
     submitButton.addEventListener('click', () => {
         username = usernameInput.value.trim();
         wakeStatus = [...wakeStatusInputs].find(input => input.checked)?.value;
-        
+
         const isAlphabet = /^[A-Za-z]+$/.test(username);
-        
+
         if (!username || !wakeStatus) {
             alert('名前と起床状況を選択してください。');
             return;
         }
-        
+
         if (!isAlphabet) {
             alert("ローマ字（英語のアルファベット）のみを使用してください。");
             return;
         }
-        
+
         sendResultsToServer(); // 結果をサーバーに送信
     });
-    
+
     // =============================
-    // 自動デバッグツールの実装
+    // デバッグモード関連関数
     // =============================
-    
+
     /**
      * Predefined LayoutsとShuffled Layoutsをデバッグコンテナに表示する関数
      */
@@ -633,7 +672,7 @@ document.addEventListener("DOMContentLoaded", function() {
             displayShuffledLayouts();
         }
     }
-    
+
     /**
      * Predefined Layoutsを視覚的に表示する関数
      */
@@ -642,26 +681,26 @@ document.addEventListener("DOMContentLoaded", function() {
         repeatedLayouts.forEach((layout, index) => {
             const layoutDiv = document.createElement('div');
             layoutDiv.classList.add('layout');
-            
+
             const title = document.createElement('h4');
             title.textContent = `Repeated Layout ${layout.layoutId}`;
             layoutDiv.appendChild(title);
-            
+
             // レイアウトを視覚的に表示
             renderLayoutVisual(layout, layoutDiv);
-            
+
             layoutsList.appendChild(layoutDiv);
         });
-        
+
         // ランダム配置のレイアウトを表示（Tの位置のみ表示、Lの位置はブロックごとに変わるため）
         randomLayouts.forEach((randomLayout, index) => {
             const layoutDiv = document.createElement('div');
             layoutDiv.classList.add('layout');
-            
+
             const title = document.createElement('h4');
             title.textContent = `Random Layout ${randomLayout.layoutId} (T Position Fixed)`;
             layoutDiv.appendChild(title);
-            
+
             // レイアウトを視覚的に表示（Lの位置は表示しない）
             const layoutContainer = document.createElement('div');
             layoutContainer.classList.add('visual-layout-container');
@@ -672,42 +711,41 @@ document.addEventListener("DOMContentLoaded", function() {
             layoutContainer.style.marginBottom = '10px';
             layoutContainer.style.borderRadius = '5px';
             layoutContainer.style.backgroundColor = '#f9f9f9';
-            
+
             // T字のみ表示
-            const tItem = {
-                rotation: randomLayout.tRotation,
-                top: randomLayout.tPosition.top,
-                left: randomLayout.tPosition.left
-            };
-            const tDiv = document.createElement('div');
-            tDiv.textContent = 'T';
-            tDiv.style.position = 'absolute';
-            tDiv.style.width = '30px';
-            tDiv.style.height = '30px';
-            tDiv.style.display = 'flex';
-            tDiv.style.justifyContent = 'center';
-            tDiv.style.alignItems = 'center';
-            tDiv.style.fontSize = '16px';
-            tDiv.style.transform = `rotate(${tItem.rotation}deg)`;
-            tDiv.style.backgroundColor = '#FFD700'; // 色分け
-            tDiv.style.borderRadius = '3px';
-            tDiv.style.border = '1px solid #000';
-            tDiv.style.cursor = 'default';
-            
-            // パーセンテージをピクセルに変換（200px x 200pxのボックスを想定）
-            const topPx = (tItem.top / 100) * 200 - 15; // 文字のサイズの半分を引く
-            const leftPx = (tItem.left / 100) * 200 - 15;
-            
-            tDiv.style.top = `${topPx}px`;
-            tDiv.style.left = `${leftPx}px`;
-            
-            layoutContainer.appendChild(tDiv);
+            const tItem = randomLayout.items.find(item => item.letter === 'T');
+            if (tItem) {
+                const tDiv = document.createElement('div');
+                tDiv.textContent = 'T';
+                tDiv.style.position = 'absolute';
+                tDiv.style.width = '30px';
+                tDiv.style.height = '30px';
+                tDiv.style.display = 'flex';
+                tDiv.style.justifyContent = 'center';
+                tDiv.style.alignItems = 'center';
+                tDiv.style.fontSize = '16px';
+                tDiv.style.transform = `translate(-50%, -50%) rotate(${tItem.rotation}deg)`;
+                tDiv.style.backgroundColor = '#FFD700'; // 色分け
+                tDiv.style.borderRadius = '3px';
+                tDiv.style.border = '1px solid #000';
+                tDiv.style.cursor = 'default';
+
+                // パーセンテージをピクセルに変換（200px x 200pxのボックスを想定）
+                const topPx = (tItem.top / 100) * 200;
+                const leftPx = (tItem.left / 100) * 200;
+
+                tDiv.style.top = `${topPx}px`;
+                tDiv.style.left = `${leftPx}px`;
+
+                layoutContainer.appendChild(tDiv);
+            }
+
             layoutDiv.appendChild(layoutContainer);
-            
+
             layoutsList.appendChild(layoutDiv);
         });
     }
-    
+
     /**
      * Shuffled Layoutsを視覚的に表示する関数
      */
@@ -720,7 +758,7 @@ document.addEventListener("DOMContentLoaded", function() {
             displayBlockLayouts(block + 1, blockLayouts);
         }
     }
-    
+
     /**
      * Shuffled Layoutsを視覚的に表示する関数
      * @param {number} blockNumber - ブロック番号
@@ -729,29 +767,29 @@ document.addEventListener("DOMContentLoaded", function() {
     function displayBlockLayouts(blockNumber, layouts) {
         const blockDiv = document.createElement('div');
         blockDiv.classList.add('layout');
-        
+
         const title = document.createElement('h4');
         title.textContent = `Block ${blockNumber} Layouts`;
         blockDiv.appendChild(title);
-        
+
         // 各トライアルのレイアウトを視覚的に表示
         layouts.forEach((layout, trialIndex) => {
             const trialDiv = document.createElement('div');
             trialDiv.classList.add('trial-layout');
-            
+
             const trialTitle = document.createElement('p');
             trialTitle.textContent = `Trial ${trialIndex + 1} (Layout ${layout.layoutId})`;
             trialDiv.appendChild(trialTitle);
-            
+
             // レイアウトを視覚的に表示
             renderLayoutVisual(layout, trialDiv);
-            
+
             blockDiv.appendChild(trialDiv);
         });
-        
+
         blocksList.appendChild(blockDiv);
     }
-    
+
     /**
      * レイアウトを視覚的に表示する関数
      * @param {Object} layout - レイアウトオブジェクト { layoutId: string, items: Array }
@@ -767,7 +805,7 @@ document.addEventListener("DOMContentLoaded", function() {
         layoutContainer.style.marginBottom = '10px';
         layoutContainer.style.borderRadius = '5px';
         layoutContainer.style.backgroundColor = '#f9f9f9';
-        
+
         layout.items.forEach(item => {
             const letterDiv = document.createElement('div');
             letterDiv.textContent = item.letter;
@@ -778,32 +816,32 @@ document.addEventListener("DOMContentLoaded", function() {
             letterDiv.style.justifyContent = 'center';
             letterDiv.style.alignItems = 'center';
             letterDiv.style.fontSize = '16px';
-            letterDiv.style.transform = `rotate(${item.rotation}deg)`;
+            letterDiv.style.transform = `translate(-50%, -50%) rotate(${item.rotation}deg)`;
             letterDiv.style.backgroundColor = item.letter === 'T' ? '#FFD700' : '#87CEFA'; // 色分け
             letterDiv.style.borderRadius = '3px';
             letterDiv.style.border = '1px solid #000';
             letterDiv.style.cursor = 'default';
-            
+
             // パーセンテージをピクセルに変換（200px x 200pxのボックスを想定）
-            const topPx = (item.top / 100) * 200 - 15; // 文字のサイズの半分を引く
-            const leftPx = (item.left / 100) * 200 - 15;
-            
+            const topPx = (item.top / 100) * 200;
+            const leftPx = (item.left / 100) * 200;
+
             letterDiv.style.top = `${topPx}px`;
             letterDiv.style.left = `${leftPx}px`;
-            
+
             layoutContainer.appendChild(letterDiv);
         });
-        
+
         container.appendChild(layoutContainer);
     }
-    
+
     /**
      * レイアウトデータをCSVとしてエクスポートする関数
      */
     function exportLayoutsToCSV() {
         let csvContent = "data:text/csv;charset=utf-8,";
         csvContent += "Block,Trial,LayoutID,Letter,Rotation,Top,Left,LayoutType\n";
-        
+
         allLayouts.forEach((layout, index) => {
             const block = Math.floor(index / 20) + 1;
             const trial = (index % 20) + 1;
@@ -811,7 +849,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 csvContent += `${block},${trial},${layout.layoutId},${item.letter},${item.rotation},${item.top},${item.left},${item.layoutType}\n`;
             });
         });
-        
+
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -820,46 +858,73 @@ document.addEventListener("DOMContentLoaded", function() {
         link.click();
         document.body.removeChild(link);
     }
-    
+
     // =============================
     // レイアウト初期化とデバッグ情報の表示
     // =============================
-    
+
     /**
      * レイアウトを初期化し、デバッグ情報を表示する関数
      */
     function initializeLayouts() {
-        initializeAllLayouts(); // 反復配置10種類とランダム配置10種類のレイアウトを生成し、18ブロックにシャッフルしてallLayoutsに格納
+        generateLayouts(Math.min(letterContainer.clientWidth, letterContainer.clientHeight)); // レイアウトを生成
+        generatePracticeLayouts(); // 練習用レイアウトを生成
+
+        const numberOfBlocks = 18;
+        const layoutsPerBlock = 20;
+
+        for (let block = 0; block < numberOfBlocks; block++) {
+            let blockLayouts = [];
+
+            // ランダム配置のレイアウトを追加
+            randomLayouts.forEach(randomLayout => {
+                blockLayouts.push(randomLayout);
+            });
+
+            // 反復配置のレイアウトを追加（固定）
+            repeatedLayouts.forEach(repeatedLayout => {
+                blockLayouts.push(repeatedLayout);
+            });
+
+            // レイアウトをシャッフル
+            let shuffledBlockLayouts = shuffleArray([...blockLayouts]);
+            allLayouts.push(...shuffledBlockLayouts); // allLayoutsに追加
+
+            // デバッグモード時に各ブロックのシャッフル結果を表示
+            if (isDebugMode) {
+                console.log(`Block ${block + 1} Layouts:`, shuffledBlockLayouts);
+                displayBlockLayouts(block + 1, shuffledBlockLayouts);
+            }
+        }
+
+        // デバッグモード時にPredefined Layoutsを表示
+        if (isDebugMode) {
+            displayPredefinedLayouts();
+            console.log('All Layouts:', allLayouts);
+        }
+    }
+
+    /**
+     * 実験を開始する関数
+     */
+    function initializeExperiment() {
+        initializeAllLayouts();
         if (isDebugMode) {
             displayDebugInfo(); // デバッグ情報を表示
         }
+        // 練習セクションはすでに表示されているため、開始はスペースキーで行う
     }
-    
+
     // =============================
-    // 実験開始ボタンのクリックイベントリスナー
+    // 初期化の呼び出し
     // =============================
-    
-    // テスト開始ボタンのクリックイベント
-    startTestButton.addEventListener('click', () => {
-        instructionContainer.style.display = 'none'; // 説明文を非表示
-        letterContainer.style.display = 'block'; // テストエリアを表示
-        buttonsContainer.style.display = 'flex'; // ボタンエリアを表示
-        trialCounter.style.display = 'block'; // テスト進行状況を表示
-        
-        initializeLayouts(); // レイアウトを生成
-        startExperiment(); // 実験を開始
-    });
-    
+
+    initializeExperiment();
+
     // =============================
-    // 自動デバッグツールの実装
-    // =============================
-    
-    // デバッグモード時にPredefined LayoutsとShuffled Layoutsを表示
-    if (isDebugMode) {
-        displayDebugInfo();
-    }
-    
     // デバッグモード時にCSVエクスポートボタンを有効化
+    // =============================
+
     if (isDebugMode) {
         exportCSVButton.addEventListener('click', exportLayoutsToCSV);
     }

@@ -1,3 +1,5 @@
+/* styles.css */
+
 /* 全ての要素にボックスサイズを適用 */
 * {
     box-sizing: border-box;
@@ -19,6 +21,7 @@ body {
     overflow-x: hidden;
     font-size: 16px; /* 基本フォントサイズ */
     color: #333333; /* テキストカラー */
+    transition: background-color 0.5s; /* 背景色の変化を滑らかに */
 }
 
 /* コンテナにFlexboxを適用 */
@@ -39,8 +42,16 @@ h1 {
     font-size: 2rem; /* 32px */
 }
 
+/* 練習セクションのタイトルスタイル */
+h2 {
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+    color: #007BFF;
+}
+
 /* 説明文のスタイル */
-#instructionContainer p {
+#practiceContainer p,
+#mainExperimentContainer p {
     margin-bottom: 20px;
     font-size: 1rem; /* 16px */
     max-width: 600px;
@@ -94,8 +105,6 @@ h1 {
 }
 
 /* プラスマークのスタイル */
-/* 以下のプラスマーク関連のスタイルを削除しました */
-
 .crosshair .plus-mark {
     position: absolute;
     top: 50%;
@@ -129,43 +138,12 @@ h1 {
     left: 50%;
     transform: translateX(-50%);
 }
-*/
 
-/* ボタンエリアのスタイル */
-.buttons-container {
+/* カウンターのスタイル */
+#trialCounter {
+    font-size: 18px;
     margin-top: 10px;
-    display: flex;
-    justify-content: space-around;
-    width: 100%;
-   /* max-width: 400px;*/ /* ボタンエリアの最大幅を設定 */
-}
-
-/* ボタンのスタイル */
-button {
-    padding: 12px 18px;
-    font-size: 1rem; /* 16px */
-    background-color: #007BFF;
-    color: #ffffff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-
-button:focus {
-    outline: 2px solid #0056b3;
-    outline-offset: 2px;
-}
-
-/* 結果表示のスタイル */
-.result-container {
-    margin-top: 10px;
-    font-size: 1.125rem; /* 18px */
-    color: #28a745; /* 成功メッセージの色 */
+    color: #333;
 }
 
 /* フォームのスタイル */
@@ -200,10 +178,20 @@ form button {
     padding: 12px 18px;
     font-size: 1rem; /* 16px */
     background-color: #28a745;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
 }
 
 form button:hover {
     background-color: #1e7e34;
+}
+
+form button:focus {
+    outline: 2px solid #1e7e34;
+    outline-offset: 2px;
 }
 
 /* ローディングインジケーターのスタイル */
@@ -325,4 +313,16 @@ form button:hover {
 
 .visual-layout-container .trial-layout {
     margin-bottom: 10px;
+}
+
+/* 不正解時のフィードバックスタイル */
+.incorrect-feedback {
+    animation: flashRed 0.5s;
+}
+
+/* 赤く点滅するアニメーション */
+@keyframes flashRed {
+    0% { background-color: #f0f0f0; }
+    50% { background-color: red; }
+    100% { background-color: #f0f0f0; }
 }
