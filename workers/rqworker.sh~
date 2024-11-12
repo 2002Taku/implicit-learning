@@ -1,0 +1,8 @@
+#!/bin/bash
+# このスクリプトはRQワーカーを起動します。
+
+# 仮想環境のアクティベート
+source /Users/kasetakuma/flask/venv/bin/activate
+
+# RQワーカーの起動
+rq worker default

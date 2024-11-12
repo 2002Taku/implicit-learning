@@ -1,0 +1,362 @@
+/* styles.css */
+
+/* ナビゲーションバーのスタイル */
+nav {
+    background-color: #333;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+nav li {
+    float: left;
+}
+
+nav li a {
+    display: block;
+    color: #f2f2f2;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+nav li a:hover {
+    background-color: #ddd;
+    color: black;
+}
+
+/* 他のスタイルは既存のまま */
+
+/* 全ての要素にボックスサイズを適用 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* 基本スタイル */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+    text-align: center;
+    overflow-x: hidden;
+    font-size: 16px; /* 基本フォントサイズ */
+    color: #333333; /* テキストカラー */
+    transition: background-color 0.5s; /* 背景色の変化を滑らかに */
+}
+
+/* コンテナにFlexboxを適用 */
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 720px; /* 最大幅を設定 */
+    padding: 20px;
+    margin: 0 auto;
+}
+
+/* タイトルのスタイル */
+h1 {
+    margin-bottom: 20px;
+    font-size: 2rem; /* 32px */
+}
+
+/* 練習セクションのタイトルスタイル */
+h2 {
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+    color: #007BFF;
+}
+
+/* 説明文のスタイル */
+#practiceContainer p,
+#mainExperimentContainer p {
+    margin-bottom: 20px;
+    font-size: 1rem; /* 16px */
+    max-width: 600px;
+}
+
+/* テストエリアのスタイル */
+.letter-container {
+    position: relative;
+    width: 100%;
+    max-width: 800px; /* コンテナの最大幅を設定 */
+    aspect-ratio: 1 / 1; /* 正方形を維持 */
+    margin: 20px auto;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    overflow: hidden;
+    background-color: #ffffff;
+    border-radius: 10px;
+    /*max-height: 60vh;*/ /* 最大高さを設定 */
+    /* height: 60vh; */ /* オプション: 固定高さにする場合 */
+}
+
+/* 文字アイテムのスタイル */
+.letter-item {
+    position: absolute;
+    width: 12.5%; /* コンテナに対する相対サイズを拡大（元は10%） */
+    height: 12.5%; /* コンテナに対する相対サイズを拡大（元は10%） */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3rem; /* フォントサイズを拡大（元は2.5rem） */
+    /* cursor: pointer; */ /* 不要なカーソルスタイルを削除 */
+    border-radius: 5px;
+    user-select: none;
+    transition: transform 0.3s;
+    transform-origin: center; /* 回転の中心を中央に設定 */
+    z-index: 2; /* 文字をクロスヘアの上に表示 */
+}
+
+.letter-item:hover {
+    transform: scale(1.2); /* ホバー時の拡大率を調整（元は1.1） */
+}
+
+/* クロスヘアのスタイル */
+.crosshair {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;  /* クリックイベントを無効化 */
+    z-index: 1; /* クロスヘアを文字の下に表示 */
+}
+
+/* プラスマークのスタイル */
+.crosshair .plus-mark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30px;  /* サイズを調整 */
+    height: 30px; /* サイズを調整 */
+    background-color: transparent;
+    transform: translate(-50%, -50%); /* 中央に正確に配置 */
+}
+
+/* プラスマークのライン */
+.crosshair .plus-mark::before,
+.crosshair .plus-mark::after {
+    content: '';
+    position: absolute;
+    background-color: black;
+}
+
+.crosshair .plus-mark::before {
+    width: 100%;
+    height: 2px; /* 線の太さを調整 */
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+}
+
+.crosshair .plus-mark::after {
+    width: 2px; /* 線の太さを調整 */
+    height: 100%;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* カウンターのスタイル */
+#trialCounter {
+    font-size: 18px;
+    margin-top: 10px;
+    color: #333;
+}
+
+/* フォームのスタイル */
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+form label {
+    margin-bottom: 5px;
+    font-size: 1rem; /* 16px */
+}
+
+form input[type="text"],
+form textarea {
+    width: 100%;
+    max-width: 400px;
+    padding: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem; /* 16px */
+}
+
+form input[type="radio"] {
+    margin-right: 5px;
+}
+
+form button {
+    padding: 12px 18px;
+    font-size: 1rem; /* 16px */
+    background-color: #28a745;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+form button:hover {
+    background-color: #1e7e34;
+}
+
+form button:focus {
+    outline: 2px solid #1e7e34;
+    outline-offset: 2px;
+}
+
+/* ローディングインジケーターのスタイル */
+.loading-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.spinner {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #007BFF;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* フィードバックメッセージのスタイル */
+.feedback-message {
+    margin-top: 10px;
+    font-size: 1.125rem; /* 18px */
+    color: #28a745; /* 成功メッセージの色 */
+}
+
+/* フィードバックメッセージのアニメーション */
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.feedback {
+    opacity: 1;
+    transition: opacity 1s ease-out;
+}
+
+/* デバッグコンテナのスタイル */
+.debug-container {
+    background-color: #ffffff;
+    border: 2px solid #007BFF;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+    max-width: 1000px; /* 必要に応じて調整 */
+    width: 100%;
+    text-align: left;
+}
+
+.debug-container h2 {
+    margin-bottom: 10px;
+    color: #007BFF;
+}
+
+.debug-container h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: #0056b3;
+}
+
+.debug-container .layout {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    overflow-x: auto;
+}
+
+.debug-container pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+#exportCSVButton {
+    margin-top: 20px;
+    padding: 10px 15px;
+    font-size: 1rem;
+    background-color: #28a745;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#exportCSVButton:hover {
+    background-color: #1e7e34;
+}
+
+#exportCSVButton:focus {
+    outline: 2px solid #1e7e34;
+    outline-offset: 2px;
+}
+
+/* デバッグコンテナ内の視覚的なレイアウト表示 */
+.visual-layout-container {
+    margin-bottom: 10px;
+}
+
+.visual-layout-container h4 {
+    margin-bottom: 5px;
+    font-size: 1rem;
+    color: #333;
+}
+
+.visual-layout-container .trial-layout {
+    margin-bottom: 10px;
+}
+
+/* 不正解時のフィードバックスタイル */
+.incorrect-feedback {
+    animation: flashRed 0.5s;
+}
+
+/* 赤く点滅するアニメーション */
+@keyframes flashRed {
+    0% { background-color: #f0f0f0; }
+    50% { background-color: red; }
+    100% { background-color: #f0f0f0; }
+}
+

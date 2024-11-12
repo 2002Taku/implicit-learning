@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ウェルカムページ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('index') }}">ホーム</a></li>
+            <li><a href="{{ url_for('login') }}">ログイン</a></li>
+            <li><a href="{{ url_for('admin') }}">管理者ページ</a></li>
+        </ul>
+    </nav>
+</body>
+</html>

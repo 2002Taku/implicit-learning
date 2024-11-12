@@ -1,0 +1,49 @@
+<!-- templates/admin.html -->
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>管理者ページ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <h1>データ分析管理ページ</h1>
+    <p>ようこそ、{{ current_user.username }} さん。</p>
+    
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flashes">
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    
+    <form method="POST">
+        <label for="participant">特定の回答者の名前を入力（全体を分析する場合は空白）:</label>
+        <input type="text" id="participant" name="participant" placeholder="例: JohnDoe">
+        <button type="submit">分析実行</button>
+    </form>
+    
+    <h2>分析ジョブのステータス</h2>
+    <ul>
+        {% for job in jobs %}
+            <li>
+                <a href="{{ url_for('job_detail', job_id=job.id) }}">ジョブID: {{ job.id }}</a> - 状態: {{ job.status }}
+            </li>
+        {% endfor %}
+    </ul>
+    
+    <h2>分析結果のダウンロード</h2>
+    <ul>
+        <li><a href="{{ url_for('download_file', filename='experiment_anova_statistics_all_participants.csv') }}">全体のANOVA統計量</a></li>
+        <li><a href="{{ url_for('download_file', filename='mean_response_time_sorted_by_participant.csv') }}">平均化データ（ソート済み）</a></li>
+        <li><a href="{{ url_for('download_file', filename='experiment_anova_statistics_per_participant.csv') }}">各回答者のANOVA統計量</a></li>
+        <!-- 必要に応じて他のファイルへのリンクを追加 -->
+    </ul>
+    
+    <a href="{{ url_for('logout') }}">ログアウト</a>
+</body>
+</html>

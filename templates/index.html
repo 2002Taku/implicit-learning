@@ -1,14 +1,17 @@
+<!-- templates/index.html -->
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- スケーリングを有効化 -->
     <title>潜在学習課題</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- CSSの参照パスを更新 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <div class="container">
-       <!-- <h1>潜在学習課題</h1> -->
+        <!-- コンテンツ部分 -->
+        <!-- <h1>潜在学習課題</h1> -->
 
         <!-- 練習セクション -->
         <div id="practiceContainer" class="container">
@@ -77,6 +80,7 @@
             <button id="exportCSVButton">レイアウトをCSVとしてエクスポート</button>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <!-- JavaScriptの参照パスを更新 -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

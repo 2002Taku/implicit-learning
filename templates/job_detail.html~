@@ -1,0 +1,18 @@
+<!-- templates/job_detail.html -->
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ジョブ詳細</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <h1>ジョブ詳細</h1>
+    <p>ジョブID: {{ job.id }}</p>
+    <p>状態: {{ job.status }}</p>
+    <p>関数名: {{ job.func_name }}</p>
+    <p>結果: {{ job.result }}</p>
+    <a href="{{ url_for('admin') }}">管理者ページに戻る</a>
+</body>
+</html>

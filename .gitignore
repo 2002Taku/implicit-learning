@@ -1,0 +1,24 @@
+# Python関連
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Flask関連
+instance/
+.webassets-cache
+
+# IDE関連
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# その他
+*.log
+.DS_Store
