@@ -13,6 +13,9 @@ venv.bak/
 instance/
 .webassets-cache
 
+# 環境変数ファイル
+.env
+
 # IDE関連
 .vscode/
 .idea/

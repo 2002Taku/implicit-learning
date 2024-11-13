@@ -15,10 +15,22 @@ print("app.py is being executed")
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# 環境変数からRedisの接続情報を取得
+REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+REDIS_PORT = os.getenv('REDIS_PORT', 6379)
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
+REDIS_USE_SSL = os.getenv('REDIS_USE_SSL', 'False').lower() in ('true', '1', 't')
+
 # Redis接続とキューの初期化
 try:
-    print(f"REDIS_URL: {app.config['REDIS_URL']}")
-    redis_conn = redis.from_url(app.config['REDIS_URL'])
+    print(f"Connecting to Redis at {REDIS_HOST}:{REDIS_PORT} with SSL={REDIS_USE_SSL}")
+    redis_conn = redis.StrictRedis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        password=REDIS_PASSWORD,
+        ssl=REDIS_USE_SSL,
+        decode_responses=True
+    )
     q = Queue(connection=redis_conn)
     print("Redis connection and queue initialized successfully.")
 except Exception as e:
@@ -165,11 +177,15 @@ def admin():
             # 特定の回答者の分析を実行
             if q is not None:
                 individual_filename = f"{participant}_results.csv"
-                job = q.enqueue(analyze_data, filename=individual_filename)
-                flash(f'{participant} のデータ分析をバックグラウンドで実行中です。ジョブID: {job.id}')
-                # デバッグ用のprint文を追加
-                print(f"Enqueued job ID: {job.id} for file: {individual_filename}")
-                print(f"Job Status: {job.get_status()}")
+                try:
+                    job = q.enqueue(analyze_data, filename=individual_filename)
+                    flash(f'{participant} のデータ分析をバックグラウンドで実行中です。ジョブID: {job.id}')
+                    # デバッグ用のprint文を追加
+                    print(f"Enqueued job ID: {job.id} for file: {individual_filename}")
+                    print(f"Job Status: {job.get_status()}")
+                except Exception as e:
+                    flash('ジョブのキューイングに失敗しました。')
+                    print(f"Failed to enqueue job: {e}")
             else:
                 flash('ジョブキューが初期化されていません。')
                 print("Queue is not initialized.")
@@ -177,11 +193,15 @@ def admin():
             # 全体の分析を実行
             if q is not None:
                 overall_filename = "Implic_Learning_results.csv"
-                job = q.enqueue(analyze_data, filename=overall_filename)
-                flash(f'全体のデータ分析をバックグラウンドで実行中です。ジョブID: {job.id}')
-                # デバッグ用のprint文を追加
-                print(f"Enqueued job ID: {job.id} for file: {overall_filename}")
-                print(f"Job Status: {job.get_status()}")
+                try:
+                    job = q.enqueue(analyze_data, filename=overall_filename)
+                    flash(f'全体のデータ分析をバックグラウンドで実行中です。ジョブID: {job.id}')
+                    # デバッグ用のprint文を追加
+                    print(f"Enqueued job ID: {job.id} for file: {overall_filename}")
+                    print(f"Job Status: {job.get_status()}")
+                except Exception as e:
+                    flash('ジョブのキューイングに失敗しました。')
+                    print(f"Failed to enqueue job: {e}")
             else:
                 flash('ジョブキューが初期化されていません。')
                 print("Queue is not initialized.")
@@ -193,11 +213,16 @@ def admin():
 
     # 現在キューに入っているジョブを取得
     if q is not None:
-        jobs = q.jobs
-        job_status = []
-        for j in jobs:
-            status = j.get_status()
-            job_status.append({'id': j.id, 'status': status, 'description': j.func_name})
+        try:
+            jobs = q.jobs
+            job_status = []
+            for j in jobs:
+                status = j.get_status()
+                job_status.append({'id': j.id, 'status': status, 'description': j.func_name})
+        except Exception as e:
+            flash('ジョブステータスの取得に失敗しました。')
+            print(f"Failed to retrieve job statuses: {e}")
+            job_status = []
     else:
         jobs = []
         job_status = []
