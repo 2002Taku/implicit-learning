@@ -1,5 +1,3 @@
-// script.js
-
 document.addEventListener("DOMContentLoaded", function() {
     // =============================
     // DOM要素の取得
@@ -30,7 +28,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let repeatedLayouts = []; // 反復配置の10レイアウト
     let randomLayouts = [];   // ランダム配置の10レイアウト
-    let allLayouts = [];      // 全ブロックで使用されるシャッフルされたレイアウト（18ブロック × 20レイアウト = 360トライアル）
+    let mainLayouts = [];     // 本番トライアル用のシャッフルされたレイアウト（18ブロック × 20レイアウト = 360トライアル）
+    let practiceLayouts = []; // 練習トライアルのレイアウト
+
     let trialCount = 0;       // 本番セクションの現在のトライアル番号（0〜359）
     let results = [];         // ユーザーの応答結果を格納
 
@@ -241,7 +241,7 @@ document.addEventListener("DOMContentLoaded", function() {
      * 全ブロックに対してシャッフルされたレイアウトを初期化する関数
      * 反復配置は固定、ランダム配置はブロックごとにL字位置をランダムに生成
      */
-    function initializeAllLayouts() {
+    function initializeMainLayouts() {
         const containerSize = Math.min(letterContainer.clientWidth, letterContainer.clientHeight);
         generateLayouts(containerSize); // 反復配置10種類とランダム配置10種類のレイアウトを生成
 
@@ -263,7 +263,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // レイアウトをシャッフル
             let shuffledBlockLayouts = shuffleArray([...blockLayouts]);
-            allLayouts.push(...shuffledBlockLayouts); // allLayoutsに追加
+            mainLayouts.push(...shuffledBlockLayouts); // mainLayoutsに追加
 
             // デバッグモード時に各ブロックのシャッフル結果を表示
             if (isDebugMode) {
@@ -275,7 +275,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // デバッグモード時にPredefined Layoutsを表示
         if (isDebugMode) {
             displayPredefinedLayouts();
-            console.log('All Layouts:', allLayouts);
+            console.log('Main Layouts:', mainLayouts);
         }
     }
 
@@ -287,8 +287,6 @@ document.addEventListener("DOMContentLoaded", function() {
      * 練習用レイアウトを生成する関数
      */
     function generatePracticeLayouts() {
-        let practiceLayouts = [];
-
         for (let i = 0; i < practiceTrials; i++) {
             const layoutType = 'practice';
             const layoutId = `Practice-${i + 1}`;
@@ -300,8 +298,11 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         }
 
-        // 練習レイアウトをシャッフルして順番をランダム化
-        allLayouts = shuffleArray([...practiceLayouts, ...allLayouts]); // 練習レイアウトを先頭に配置
+        // デバッグモード時にPredefined Layoutsを表示
+        if (isDebugMode) {
+            displayPredefinedLayouts();
+            console.log('Practice Layouts:', practiceLayouts);
+        }
     }
 
     // =============================
@@ -362,11 +363,11 @@ document.addEventListener("DOMContentLoaded", function() {
      * 次のトライアルを実行する関数
      */
     function nextTrial() {
-        if (trialCount < allLayouts.length - practiceTrials) { // 本番セクションのトライアル数を確認
+        if (trialCount < mainLayouts.length) { // 本番セクションのトライアル数を確認
             const currentBlock = Math.floor(trialCount / 20) + 1;
             trialCounter.textContent = `ブロック: ${currentBlock} / 18`;
 
-            const currentLayout = allLayouts[practiceTrials + trialCount];
+            const currentLayout = mainLayouts[trialCount];
             displayLetters(currentLayout);
             letterContainer.style.visibility = 'visible';
 
@@ -386,7 +387,7 @@ document.addEventListener("DOMContentLoaded", function() {
      */
     function displayPracticeTrial() {
         if (practiceTrialCount < practiceTrials) {
-            const currentLayout = allLayouts[practiceTrialCount];
+            const currentLayout = practiceLayouts[practiceTrialCount];
             displayLetters(currentLayout);
             letterContainer.style.visibility = 'visible';
             trialCounter.style.display = 'block';
@@ -422,9 +423,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
         let currentLayout;
         if (isPractice) {
-            currentLayout = allLayouts[practiceTrialCount - 1]; // 練習セクションのレイアウトを取得
+            currentLayout = practiceLayouts[practiceTrialCount - 1]; // 練習セクションのレイアウトを取得
         } else {
-            currentLayout = allLayouts[practiceTrials + trialCount - 1]; // 本番セクションのレイアウトを取得
+            currentLayout = mainLayouts[trialCount - 1]; // 本番セクションのレイアウトを取得
         }
 
         const targetItem = currentLayout.items.find(item => item.letter === 'T');
@@ -445,7 +446,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 participant: username,
                 condition: wakeStatus,
                 testType: 'Implicit Learning',
-                trialNumber: isPractice ? `Practice-${practiceTrialCount}` : `${trialCount}`,
+                trialNumber: `${trialCount}`, // trialNumberを1〜360に設定
                 layoutId: layoutId, // layoutIdを記録
                 layoutType: layoutType,
                 result: isCorrect ? 'Correct' : 'Incorrect',
@@ -569,7 +570,7 @@ document.addEventListener("DOMContentLoaded", function() {
         resultContainer.classList.add('result-container');
         resultContainer.innerHTML = `
             <p>結果は送信されました。回答ありがとうございます。</p>
-            <p>総正解数: ${totalCorrect} / ${allLayouts.length - practiceTrials}</p>
+            <p>総正解数: ${totalCorrect} / ${mainLayouts.length}</p>
         `;
         document.body.innerHTML = ''; // 既存の要素をクリア
         document.body.appendChild(resultContainer); // メッセージを表示
@@ -760,7 +761,7 @@ document.addEventListener("DOMContentLoaded", function() {
         for (let block = 0; block < numberOfBlocks; block++) {
             const startIdx = block * 20;
             const endIdx = startIdx + 20;
-            const blockLayouts = allLayouts.slice(startIdx, endIdx);
+            const blockLayouts = mainLayouts.slice(startIdx, endIdx);
             displayBlockLayouts(block + 1, blockLayouts);
         }
     }
@@ -848,7 +849,7 @@ document.addEventListener("DOMContentLoaded", function() {
         let csvContent = "data:text/csv;charset=utf-8,";
         csvContent += "Block,Trial,LayoutID,Letter,Rotation,Top,Left,LayoutType\n";
 
-        allLayouts.forEach((layout, index) => {
+        mainLayouts.forEach((layout, index) => {
             const block = Math.floor(index / 20) + 1;
             const trial = (index % 20) + 1;
             layout.items.forEach(item => {
@@ -866,57 +867,17 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // =============================
-    // レイアウト初期化とデバッグ情報の表示
+    // 実験初期化関数
     // =============================
 
     /**
      * レイアウトを初期化し、デバッグ情報を表示する関数
      */
-    function initializeLayouts() {
-        generateLayouts(Math.min(letterContainer.clientWidth, letterContainer.clientHeight)); // レイアウトを生成
-        generatePracticeLayouts(); // 練習用レイアウトを生成
-
-        const numberOfBlocks = 18;
-        const layoutsPerBlock = 20;
-
-        for (let block = 0; block < numberOfBlocks; block++) {
-            let blockLayouts = [];
-
-            // ランダム配置のレイアウトを追加
-            randomLayouts.forEach(randomLayout => {
-                blockLayouts.push(randomLayout);
-            });
-
-            // 反復配置のレイアウトを追加（固定）
-            repeatedLayouts.forEach(repeatedLayout => {
-                blockLayouts.push(repeatedLayout);
-            });
-
-            // レイアウトをシャッフル
-            let shuffledBlockLayouts = shuffleArray([...blockLayouts]);
-            allLayouts.push(...shuffledBlockLayouts); // allLayoutsに追加
-
-            // デバッグモード時に各ブロックのシャッフル結果を表示
-            if (isDebugMode) {
-                console.log(`Block ${block + 1} Layouts:`, shuffledBlockLayouts);
-                displayBlockLayouts(block + 1, shuffledBlockLayouts);
-            }
-        }
-
-        // デバッグモード時にPredefined Layoutsを表示
-        if (isDebugMode) {
-            displayPredefinedLayouts();
-            console.log('All Layouts:', allLayouts);
-        }
-    }
-
-    /**
-     * 実験を開始する関数
-     */
     function initializeExperiment() {
-        initializeAllLayouts();
+        initializeMainLayouts();    // 本番トライアルを初期化
+        generatePracticeLayouts();  // 練習トライアルを初期化
         if (isDebugMode) {
-            displayDebugInfo(); // デバッグ情報を表示
+            displayDebugInfo();     // デバッグ情報を表示
         }
         // 練習セクションはすでに表示されているため、開始はスペースキーで行う
     }

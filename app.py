@@ -29,6 +29,22 @@ def load_user(user_id):
             return user
     return None
 
+# =============================
+# アプリケーション起動時の初期化
+# =============================
+def ensure_data_directory():
+    data_dir = os.path.join(app.root_path, 'data')
+    if not os.path.exists(data_dir):
+        try:
+            os.makedirs(data_dir)
+            app.logger.info(f"Created directory: {data_dir}")
+        except Exception as e:
+            app.logger.error(f"Failed to create directory {data_dir}: {e}")
+            raise e  # アプリケーションを起動し続けるかどうかは要件次第
+
+# アプリケーション起動時に `data` ディレクトリを確認
+ensure_data_directory()
+
 @app.route('/')
 def landing():
     return render_template('landing.html')
@@ -40,9 +56,9 @@ def index():
 # /proxy エンドポイントの修正（ジョブキュー関連のロジックを削除）
 @app.route('/proxy', methods=['POST'])
 def proxy():
-    print("Proxy endpoint has been called")
+    app.logger.info("Proxy endpoint has been called")
     data = request.get_json()
-    print(f"Received data: {data}")  # 受信データのログ出力
+    app.logger.debug(f"Received data: {data}")  # 受信データのログ出力
 
     participant = data.get('participant')
     condition = data.get('condition')
@@ -52,11 +68,11 @@ def proxy():
     # データを保存する処理
     # 全体の結果ファイル
     overall_filename = "Implic_Learning_results.csv"
-    overall_filepath = os.path.join('data', overall_filename)
+    overall_filepath = os.path.join(app.root_path, 'data', overall_filename)
 
     # 個別の結果ファイル
     individual_filename = f"{participant}_results.csv"
-    individual_filepath = os.path.join('data', individual_filename)
+    individual_filepath = os.path.join(app.root_path, 'data', individual_filename)
 
     # ヘッダー（'responseTime(ms)' から 'responseTime' に変更）
     headers = ['participant', 'condition', 'testType', 'trialNumber', 'layoutId', 'layoutType', 'result', 'responseTime']
@@ -68,7 +84,7 @@ def proxy():
             overall_writer = csv.DictWriter(overall_csvfile, fieldnames=headers)
             if write_header_overall:
                 overall_writer.writeheader()
-                print(f"Wrote header to {overall_filename}.")
+                app.logger.info(f"Wrote header to {overall_filename}.")
             for result in results:
                 overall_writer.writerow({
                     'participant': participant,
@@ -78,9 +94,9 @@ def proxy():
                     'layoutId': result.get('layoutId'),
                     'layoutType': result.get('layoutType'),
                     'result': result.get('result'),
-                    'responseTime': result.get('responseTime(ms)')
+                    'responseTime': result.get('responseTime')  # 修正
                 })
-        print(f"Successfully wrote results to {overall_filename}.")
+        app.logger.info(f"Successfully wrote results to {overall_filename}.")
 
         # 個別ファイルへの書き込み
         write_header_individual = not os.path.exists(individual_filepath)
@@ -88,7 +104,7 @@ def proxy():
             individual_writer = csv.DictWriter(individual_csvfile, fieldnames=headers)
             if write_header_individual:
                 individual_writer.writeheader()
-                print(f"Wrote header to {individual_filename}.")
+                app.logger.info(f"Wrote header to {individual_filename}.")
             for result in results:
                 individual_writer.writerow({
                     'participant': participant,
@@ -98,14 +114,14 @@ def proxy():
                     'layoutId': result.get('layoutId'),
                     'layoutType': result.get('layoutType'),
                     'result': result.get('result'),
-                    'responseTime': result.get('responseTime(ms)')
+                    'responseTime': result.get('responseTime')  # 修正
                 })
-        print(f"Successfully wrote results to {individual_filename}.")
+        app.logger.info(f"Successfully wrote results to {individual_filename}.")
 
     except Exception as e:
-        print(f"Error writing to CSV files: {e}")
+        app.logger.error(f"Error writing to CSV files: {e}")
         import traceback
-        traceback.print_exc()
+        app.logger.error(traceback.format_exc())
         return jsonify({'status': 'error', 'message': 'Failed to write data.'}), 500
 
     return jsonify({'status': 'success'})
@@ -134,19 +150,19 @@ def logout():
 @app.route('/admin', methods=['GET'])
 @login_required
 def admin():
-    print("Entered admin function")
+    app.logger.info("Entered admin function")
     # 管理者のみアクセス可能とする条件
     if not getattr(current_user, 'is_admin', False):
         flash('管理者のみアクセスできます。')
         return redirect(url_for('index'))
 
     # data ディレクトリ内の CSV ファイルをリストアップ
-    data_dir = os.path.join(os.getcwd(), 'data')
+    data_dir = os.path.join(app.root_path, 'data')
     try:
         csv_files = [f for f in os.listdir(data_dir) if f.endswith('.csv')]
     except Exception as e:
         flash('データディレクトリの読み込みに失敗しました。')
-        print(f"Failed to list CSV files: {e}")
+        app.logger.error(f"Failed to list CSV files: {e}")
         csv_files = []
 
     return render_template('admin.html', csv_files=csv_files)
@@ -164,7 +180,7 @@ def download_file(filename):
     # ファイル名をセキュアにする
     filename = secure_filename(filename)
     # ファイルのパスを安全に確認
-    safe_path = os.path.join(os.getcwd(), 'data', filename)
+    safe_path = os.path.join(app.root_path, 'data', filename)
     if os.path.exists(safe_path):
         return send_file(safe_path, as_attachment=True)
     else:
@@ -175,7 +191,7 @@ def download_file(filename):
 
 if __name__ == '__main__':
     # ルート一覧を表示
-    print("Registered routes:")
+    app.logger.info("Registered routes:")
     for rule in app.url_map.iter_rules():
-        print(rule)
+        app.logger.info(rule)
     app.run(debug=True, port=5000)
