@@ -25,3 +25,6 @@ instance/
 # その他
 *.log
 .DS_Store
+
+#バックアップファイル
+*~

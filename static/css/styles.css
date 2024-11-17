@@ -172,6 +172,11 @@ h2 {
     transform: translateX(-50%);
 }
 
+/* カーソルを非表示にするクラス */
+.hide-cursor {
+    cursor: none;
+}
+
 /* カウンターのスタイル */
 #trialCounter {
     font-size: 18px;

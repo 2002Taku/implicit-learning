@@ -347,6 +347,9 @@ document.addEventListener("DOMContentLoaded", function() {
         results = [];
         startTime = Date.now(); // 実験開始時刻を記録
 
+        // カーソルを非表示にするクラスを追加
+        document.body.classList.add('hide-cursor');
+
         if (isPractice) {
             displayPracticeTrial(); // 練習トライアルを開始
         } else {
@@ -493,6 +496,9 @@ document.addEventListener("DOMContentLoaded", function() {
     function endExperiment() {
         isExperimentEnded = true;
         isExperimentStarted = false;
+
+        // カーソルを再表示するクラスを削除
+        document.body.classList.remove('hide-cursor');
 
         // テストエリアを非表示
         letterContainer.style.display = 'none';

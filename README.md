@@ -1,96 +1,73 @@
-# myflaskapp
+# Flask アプリケーション
 
 ## 概要
 
-Flaskを使用したデータ分析アプリケーション。管理者のみがデータ分析を実行し、結果を閲覧できます。
+このアプリケーションは、潜在学習課題のデータを収集し、管理者が CSV ファイルとしてダウンロードできるようにするためのものです。以前は Azure Redis Cache と RQ を使用してバックグラウンドジョブでデータ分析を行っていましたが、現在はこれらを廃止し、直接 CSV ファイルのダウンロード機能のみを提供しています。
 
-## セットアップ手順
+## 変更点
 
-1. **仮想環境の作成とアクティブ化**
+- **Azure Redis Cache と RQ の削除**
+  - Redis Cache を使用しなくなりました。
+  - バックグラウンドジョブの処理を廃止しました。
+  
+- **管理者ページの更新**
+  - 管理者ページでの分析実行機能を削除し、`data` ディレクトリ内の CSV ファイルのダウンロードリンクのみを表示するように変更しました。
+  
+- **依存関係の変更**
+  - `redis` と `rq` パッケージを削除しました。
 
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
+## セットアップ
 
-2. **依存関係のインストール**
+### 必要条件
+
+- Python 3.12
+- Microsoft Azure アカウント
+
+### インストール
+
+1. **依存関係のインストール**
 
     ```bash
     pip install -r requirements.txt
     ```
 
-3. **Redisサーバーの起動**
+2. **環境変数の設定**
 
-    Redisがインストールされていない場合は、以下のコマンドでインストールします（例: Ubuntuの場合）。
+    `.env` ファイルまたは Azure App Service の設定で `SECRET_KEY` を設定してください。
 
-    ```bash
-    sudo apt-get install redis-server
-    sudo service redis-server start
-    ```
-
-4. **RQワーカーの起動**
-
-    別のターミナルで以下を実行します。
-
-    ```bash
-    bash workers/rqworker.sh
-    ```
-
-5. **Flaskアプリケーションの起動**
+3. **アプリケーションの起動**
 
     ```bash
     python app.py
     ```
 
-6. **ブラウザでアクセス**
+## デプロイメント
 
-    `http://127.0.0.1:5000` にアクセスし、ログインページから管理者としてログインします。
+このアプリケーションは GitHub Actions を使用して Azure App Service にデプロイされています。変更を GitHub リポジトリにプッシュすると、自動的にデプロイがトリガーされます。
 
-## 管理者アカウント
+### デプロイ手順
 
-- **ユーザー名**: `admin`
-- **パスワード**: `adminpass`
+1. **ローカルでの変更をコミット**
 
-（セキュリティ上、実際のプロジェクトではパスワードをハッシュ化し、環境変数で管理してください。）
+    ```bash
+    git add .
+    git commit -m "Remove Azure Redis Cache and analysis jobs; enable CSV download on admin page"
+    git push origin main
+    ```
 
-## ディレクトリ構成
-myflaskapp/
-├── app.py
-├── analysis.py
-├── tasks.py
-├── config/
-│   └── config.py
-├── data/
-│   ├── Implic_Learning_results.csv
-│   ├── mean_response_time_sorted_by_participant.csv
-│   ├── experiment_anova_statistics_all_participants.csv
-│   ├── experiment_anova_statistics_per_participant.csv
-│   └── [その他のデータファイル].csv
-├── logs/
-│   ├── rqworker.err.log
-│   └── rqworker.out.log
-├── workers/
-│   └── rqworker.sh
-├── static/
-│   ├── incorrect.mp3
-│   ├── css/
-│   │   └── styles.css
-│   ├── js/
-│   │   └── script.js
-│   └── [その他の静的ファイル]
-├── templates/
-│   ├── index.html
-│   ├── login.html
-│   ├── admin.html
-│   └── job_detail.html
-├── models.py
-├── requirements.txt
-├── Procfile
-├── README.md
-└── .gitignore
+2. **GitHub Actions の確認**
 
-## 注意事項
+    GitHub リポジトリの「Actions」タブでワークフローのステータスを確認します。
 
-- **セキュリティ**: 本番環境では、パスワードのハッシュ化や環境変数の使用を必ず実施してください。
-- **ログの管理**: `logs/` ディレクトリ内のログファイルを定期的に確認し、問題がないかチェックしてください。
-- **デプロイメント**: HerokuなどのPaaSにデプロイする場合は、`Procfile` を使用してプロセスを定義してください。
+3. **Azure App Service の確認**
+
+    デプロイが成功したら、Azure App Service 上でアプリケーションが正しく動作していることを確認します。
+
+## セキュリティ
+
+- 管理者ページは認証された管理者のみがアクセス可能です。
+- ファイルダウンロード時にセキュリティ対策を講じています。
+
+## ライセンス
+
+MIT License
