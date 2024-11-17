@@ -4,41 +4,11 @@ from flask import Flask, render_template, request, redirect, url_for, flash, sen
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from models import User
 import os
-import redis
-from rq import Queue
-from tasks import analyze_data
-from config.config import Config
 import csv
-
-print("app.py is being executed")
+from config.config import Config
 
 app = Flask(__name__)
 app.config.from_object(Config)
-
-# 環境変数からRedisの接続情報を取得
-REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
-REDIS_PORT = os.getenv('REDIS_PORT', 6379)
-REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
-REDIS_USE_SSL = os.getenv('REDIS_USE_SSL', 'False').lower() in ('true', '1', 't')
-
-# Redis接続とキューの初期化
-try:
-    print(f"Connecting to Redis at {REDIS_HOST}:{REDIS_PORT} with SSL={REDIS_USE_SSL}")
-    redis_conn = redis.StrictRedis(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        password=REDIS_PASSWORD,
-        ssl=REDIS_USE_SSL,
-        decode_responses=True
-    )
-    q = Queue(connection=redis_conn)
-    print("Redis connection and queue initialized successfully.")
-except Exception as e:
-    print(f"Failed to initialize Redis connection or queue: {e}")
-    # エラー内容を詳細に表示
-    import traceback
-    traceback.print_exc()
-    q = None  # Queueの初期化に失敗した場合はNoneを設定
 
 # Flask-Loginの設定
 login_manager = LoginManager()
@@ -67,7 +37,7 @@ def landing():
 def index():
     return render_template('index.html')
 
-# /proxy エンドポイントの追加
+# /proxy エンドポイントの修正（ジョブキュー関連のロジックを削除）
 @app.route('/proxy', methods=['POST'])
 def proxy():
     print("Proxy endpoint has been called")
@@ -79,7 +49,7 @@ def proxy():
     testType = data.get('testType')
     results = data.get('results')
 
-    # データを保存する処理を実装します
+    # データを保存する処理
     # 全体の結果ファイル
     overall_filename = "Implic_Learning_results.csv"
     overall_filepath = os.path.join('data', overall_filename)
@@ -161,7 +131,7 @@ def logout():
     flash('ログアウトしました。')
     return redirect(url_for('index'))
 
-@app.route('/admin', methods=['GET', 'POST'])
+@app.route('/admin', methods=['GET'])
 @login_required
 def admin():
     print("Entered admin function")
@@ -170,75 +140,29 @@ def admin():
         flash('管理者のみアクセスできます。')
         return redirect(url_for('index'))
 
-    if request.method == 'POST':
-        participant = request.form.get('participant')
-        analysis_type = request.form.get('analysis_type')  # 新たに追加するフォーム項目
-        if participant and analysis_type == 'individual':
-            # 特定の回答者の分析を実行
-            if q is not None:
-                individual_filename = f"{participant}_results.csv"
-                try:
-                    job = q.enqueue(analyze_data, filename=individual_filename)
-                    flash(f'{participant} のデータ分析をバックグラウンドで実行中です。ジョブID: {job.id}')
-                    # デバッグ用のprint文を追加
-                    print(f"Enqueued job ID: {job.id} for file: {individual_filename}")
-                    print(f"Job Status: {job.get_status()}")
-                except Exception as e:
-                    flash('ジョブのキューイングに失敗しました。')
-                    print(f"Failed to enqueue job: {e}")
-            else:
-                flash('ジョブキューが初期化されていません。')
-                print("Queue is not initialized.")
-        elif not participant and analysis_type == 'overall':
-            # 全体の分析を実行
-            if q is not None:
-                overall_filename = "Implic_Learning_results.csv"
-                try:
-                    job = q.enqueue(analyze_data, filename=overall_filename)
-                    flash(f'全体のデータ分析をバックグラウンドで実行中です。ジョブID: {job.id}')
-                    # デバッグ用のprint文を追加
-                    print(f"Enqueued job ID: {job.id} for file: {overall_filename}")
-                    print(f"Job Status: {job.get_status()}")
-                except Exception as e:
-                    flash('ジョブのキューイングに失敗しました。')
-                    print(f"Failed to enqueue job: {e}")
-            else:
-                flash('ジョブキューが初期化されていません。')
-                print("Queue is not initialized.")
-        else:
-            flash('分析タイプと参加者の選択が正しくありません。')
-            print("Invalid analysis request.")
+    # data ディレクトリ内の CSV ファイルをリストアップ
+    data_dir = os.path.join(os.getcwd(), 'data')
+    try:
+        csv_files = [f for f in os.listdir(data_dir) if f.endswith('.csv')]
+    except Exception as e:
+        flash('データディレクトリの読み込みに失敗しました。')
+        print(f"Failed to list CSV files: {e}")
+        csv_files = []
 
-        return redirect(url_for('admin'))
-
-    # 現在キューに入っているジョブを取得
-    if q is not None:
-        try:
-            jobs = q.jobs
-            job_status = []
-            for j in jobs:
-                status = j.get_status()
-                job_status.append({'id': j.id, 'status': status, 'description': j.func_name})
-        except Exception as e:
-            flash('ジョブステータスの取得に失敗しました。')
-            print(f"Failed to retrieve job statuses: {e}")
-            job_status = []
-    else:
-        jobs = []
-        job_status = []
-        flash('ジョブキューが初期化されていません。')
-        print("Queue is not initialized.")
-
-    return render_template('admin.html', jobs=job_status)
+    return render_template('admin.html', csv_files=csv_files)
 
 @app.route('/download/<filename>')
 @login_required
 def download_file(filename):
+    from werkzeug.utils import secure_filename
+
     # 管理者のみアクセス可能とする条件
     if not getattr(current_user, 'is_admin', False):
         flash('管理者のみアクセスできます。')
         return redirect(url_for('index'))
 
+    # ファイル名をセキュアにする
+    filename = secure_filename(filename)
     # ファイルのパスを安全に確認
     safe_path = os.path.join(os.getcwd(), 'data', filename)
     if os.path.exists(safe_path):
@@ -247,19 +171,7 @@ def download_file(filename):
         flash('指定されたファイルが存在しません。')
         return redirect(url_for('admin'))
 
-# ジョブ詳細ページのルートを追加（admin.htmlにリンクがありますが、ルートが未定義）
-@app.route('/job/<job_id>')
-@login_required
-def job_detail(job_id):
-    if not getattr(current_user, 'is_admin', False):
-        flash('管理者のみアクセスできます。')
-        return redirect(url_for('index'))
-    if q is not None:
-        job = q.fetch_job(job_id)
-        if job:
-            return render_template('job_detail.html', job=job)
-    flash('ジョブが見つかりません。')
-    return redirect(url_for('admin'))
+# ジョブ詳細ページのルートを削除
 
 if __name__ == '__main__':
     # ルート一覧を表示

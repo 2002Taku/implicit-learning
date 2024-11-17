@@ -21,52 +21,13 @@
       {% endif %}
     {% endwith %}
     
-    <form method="POST">
-        <label for="analysis_type">分析タイプを選択:</label>
-        <select id="analysis_type" name="analysis_type" required>
-            <option value="">選択してください</option>
-            <option value="overall">全体分析</option>
-            <option value="individual">個別分析</option>
-        </select>
-        <br><br>
-        
-        <label for="participant">特定の回答者の名前を入力（個別分析の場合のみ必要）:</label>
-        <input type="text" id="participant" name="participant" placeholder="例: TestUser">
-        <br><br>
-        
-        <button type="submit">分析実行</button>
-    </form>
-    
-    <h2>分析ジョブのステータス</h2>
+    <h2>ダウンロード可能なCSVファイル</h2>
     <ul>
-        {% for job in jobs %}
-            <li>
-                <a href="{{ url_for('job_detail', job_id=job.id) }}">ジョブID: {{ job.id }}</a> - 状態: {{ job.status }}
-            </li>
+        {% for file in csv_files %}
+            <li><a href="{{ url_for('download_file', filename=file) }}">{{ file }}</a></li>
         {% endfor %}
     </ul>
     
-    <h2>分析結果のダウンロード</h2>
-    <ul>
-        <li><a href="{{ url_for('download_file', filename='experiment_anova_statistics_all_participants.csv') }}">全体のANOVA統計量</a></li>
-        <li><a href="{{ url_for('download_file', filename='mean_response_time_sorted_by_participant.csv') }}">平均化データ（ソート済み）</a></li>
-        <li><a href="{{ url_for('download_file', filename='experiment_anova_statistics_per_participant.csv') }}">各回答者のANOVA統計量</a></li>
-        <!-- 必要に応じて他のファイルへのリンクを追加 -->
-    </ul>
-    
     <a href="{{ url_for('logout') }}">ログアウト</a>
-    
-    <script>
-        // 分析タイプに応じて参加者名入力フィールドの表示を切り替える
-        document.getElementById('analysis_type').addEventListener('change', function() {
-            const participantField = document.getElementById('participant');
-            if (this.value === 'individual') {
-                participantField.required = true;
-            } else {
-                participantField.required = false;
-                participantField.value = '';
-            }
-        });
-    </script>
 </body>
 </html>
