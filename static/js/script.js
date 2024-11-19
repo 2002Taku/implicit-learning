@@ -48,6 +48,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const isDebugMode = urlParams.get('debug') === 'true';
 
     // =============================
+    // 固定ランダムT位置を保持するオブジェクト
+    // =============================
+    let fixedRandomTPositions = {};
+
+    // =============================
     // レイアウト生成関数
     // =============================
 
@@ -73,7 +78,8 @@ document.addEventListener("DOMContentLoaded", function() {
         // ランダム配置のレイアウト生成
         for (let i = 0; i < 10; i++) {
             const layoutId = String.fromCharCode(65 + i); // A〜J
-            const layoutItems = generateFixedLayout(containerSize, 'random', layoutId);
+            // 初期のランダム配置のTの位置を固定
+            const layoutItems = generateFixedLayout(containerSize, 'random', layoutId, true); // Tの位置を固定
 
             randomLayouts.push({
                 layoutId: layoutId,
@@ -87,14 +93,25 @@ document.addEventListener("DOMContentLoaded", function() {
      * @param {number} containerSize - コンテナのサイズ
      * @param {string} layoutType - 'repeated' または 'random' または 'practice'
      * @param {string} layoutId - レイアウトの識別子
+     * @param {boolean} isTFixed - Tの位置を固定するかどうか
      * @returns {Array} レイアウト内の文字情報の配列
      */
-    function generateFixedLayout(containerSize, layoutType, layoutId) {
+    function generateFixedLayout(containerSize, layoutType, layoutId, isTFixed = false) {
         let layout = [];
 
-        // クアドラントをランダムに選択
-        const tQuadrant = getRandomQuadrant();
-        const tPosition = getRandomPositionWithinQuadrant(tQuadrant);
+        let tPosition;
+        if (isTFixed && layoutType === 'random') {
+            // ランダム配置のTの位置を一度だけ固定
+            if (!fixedRandomTPositions[layoutId]) {
+                fixedRandomTPositions[layoutId] = getRandomPositionWithinQuadrant(getRandomQuadrant());
+            }
+            tPosition = fixedRandomTPositions[layoutId];
+        } else {
+            // クアドラントをランダムに選択
+            const tQuadrant = getRandomQuadrant();
+            tPosition = getRandomPositionWithinQuadrant(tQuadrant);
+        }
+
         const tRotation = getRandomRotation(true);
 
         // T字を配置（回転角度は90度または270度のみ）
@@ -251,9 +268,14 @@ document.addEventListener("DOMContentLoaded", function() {
         for (let block = 0; block < numberOfBlocks; block++) {
             let blockLayouts = [];
 
-            // ランダム配置のレイアウトを追加
+            // ランダム配置のレイアウトを各ブロックごとに再生成
             randomLayouts.forEach(randomLayout => {
-                blockLayouts.push(randomLayout);
+                // ランダム配置のL字の位置を再生成（Tの位置は固定）
+                const newLayoutItems = generateFixedLayout(containerSize, 'random', randomLayout.layoutId, true); // Tの位置は固定
+                blockLayouts.push({
+                    layoutId: randomLayout.layoutId,
+                    items: newLayoutItems
+                });
             });
 
             // 反復配置のレイアウトを追加（固定）
